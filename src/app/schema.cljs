@@ -1,7 +1,9 @@
 
 (ns app.schema )
 
-(def database {:sessions {}, :users {}})
+(def database {:sessions {}, :users {}, :moods {}})
+
+(def mood {:id nil, :detail "", :brief "", :time 0})
 
 (def notification {:id nil, :kind nil, :text nil})
 
