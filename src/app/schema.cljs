@@ -1,7 +1,7 @@
 
 (ns app.schema )
 
-(def database {:sessions {}, :users {}, :moods {}})
+(def database {:sessions {}, :users {}})
 
 (def mood {:id nil, :detail "", :brief "", :time 0})
 
@@ -16,4 +16,4 @@
    :router {:name :home, :data nil, :router nil},
    :messages {}})
 
-(def user {:name nil, :id nil, :nickname nil, :avatar nil, :password nil})
+(def user {:name nil, :id nil, :nickname nil, :avatar nil, :password nil, :moods {}})

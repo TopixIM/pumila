@@ -27,7 +27,7 @@
                 (case (:name router)
                   :home {}
                   :profile (twig-members (:sessions db) (:users db))
-                  :moods (:moods db)
+                  :moods (get-in db [:users (:user-id session) :moods])
                   {})),
        :count (count (:sessions db)),
        :color (color/randomColor)}
