@@ -9,9 +9,9 @@
     (not (contains? bundle-builds (get-env! "mode")))))
 
 (def site
-  {:storage-key "pulima",
+  {:storage-key "pumila",
    :port 11011,
-   :title "Pulima",
+   :title "Pumila",
    :icon "http://cdn.tiye.me/logo/pumila.png",
    :dev-ui "http://localhost:8100/main.css",
    :release-ui "http://cdn.tiye.me/favored-fonts/main.css",
