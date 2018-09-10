@@ -16,8 +16,9 @@
             :justify-content :space-between,
             :padding "0 16px",
             :font-size 16,
-            :border-bottom (str "1px solid " (hsl 0 0 0 0.1)),
-            :font-family ui/font-fancy})}
+            :font-family ui/font-fancy,
+            :background-color (:theme config/site),
+            :color :white})}
   (div
    {:on-click (action-> :router/change {:name :home}), :style {:cursor :pointer}}
    (<> span (:title config/site) nil))

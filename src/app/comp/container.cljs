@@ -12,7 +12,10 @@
             [app.comp.reel :refer [comp-reel]]
             [app.config :refer [dev?]]
             [app.schema :as schema]
-            [app.config :as config]))
+            [app.config :as config]
+            [app.comp.home :refer [comp-home]]
+            [app.comp.moods :refer [comp-moods]]
+            [app.comp.creator :refer [comp-creator]]))
 
 (defcomp
  comp-offline
@@ -63,8 +66,10 @@
       (comp-navigation (:logged-in? store) (:count store))
       (if (:logged-in? store)
         (case (:name router)
-          :home (<> "Home")
+          :home (comp-home)
+          :creator (comp-creator states)
           :profile (comp-profile (:user store) (:data router))
+          :moods (comp-moods (:data router))
           (<> router))
         (comp-login states))
       (comp-status-color (:color store))
@@ -74,5 +79,3 @@
        {}
        (fn [info d! m!] (d! :session/remove-message info)))
       (when dev? (comp-reel (:reel-length store) {}))))))
-
-(def style-body {:padding "8px 16px"})

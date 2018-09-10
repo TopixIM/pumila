@@ -12,11 +12,11 @@
   {:storage-key "pulima",
    :port 11011,
    :title "Pulima",
-   :icon "http://cdn.tiye.me/logo/cumulo.png",
+   :icon "http://cdn.tiye.me/logo/pumila.png",
    :dev-ui "http://localhost:8100/main.css",
    :release-ui "http://cdn.tiye.me/favored-fonts/main.css",
    :cdn-url "http://cdn.tiye.me/11011/",
    :cdn-folder "tiye.me:cdn/11011",
    :upload-folder "tiye.me:repo/TopixIM/pumila/",
    :server-folder "tiye.me:servers/pumila",
-   :theme "#eeeeff"})
+   :theme "#FFB300"})
