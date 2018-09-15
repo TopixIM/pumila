@@ -37,7 +37,14 @@
    {}
    (button
     {:style (merge ui/button {:color :red, :border-color :red}),
+     :on-click (fn [e dispatch! mutate!] (dispatch! :user/reset-mark nil))}
+    (<> "Reset history")))
+  (=< nil 48)
+  (div
+   {}
+   (button
+    {:style (merge ui/button {:color :red, :border-color :red}),
      :on-click (fn [e dispatch! mutate!]
        (dispatch! :user/log-out nil)
        (.removeItem js/localStorage (:storage-key config/site)))}
-    (<> span "Log out" nil)))))
+    (<> "Log out")))))
