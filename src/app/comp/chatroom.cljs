@@ -17,10 +17,11 @@
   (div
    {:style {:background-color (hsl 60 70 48),
             :margin-right 8,
-            :padding "4px 8px",
+            :padding "6px 8px",
             :border-radius "5px",
             :font-size 16,
-            :line-height "32px"}}
+            :line-height "28px",
+            :max-width (- js/window.innerWidth 128)}}
    (<> (:text message)))
   (img
    {:src "http://cdn.tiye.me/logo/tiye.jpg",
@@ -65,6 +66,17 @@
                       (* 1000 (rand-int 6)))))]
    (div
     {:style (merge ui/flex ui/column)}
+    (div
+     {:style (merge ui/center {:background-color (hsl 0 0 94), :padding 8})}
+     (span
+      {:style {:line-height "24px",
+               :font-size 12,
+               :color :white,
+               :background-color (hsl 0 0 80),
+               :padding "0 8px",
+               :border-radius "4px"},
+       :inner-text "View history",
+       :on-click (fn [e d! m!] (println "TODO"))}))
     (div
      {:class-name "chatroom-list",
       :style (merge ui/flex {:background-color (hsl 0 0 94), :overflow :auto})}

@@ -6,7 +6,9 @@
             [cljs.reader :refer [read-string]]
             [app.connection :refer [send! setup-socket!]]
             [app.schema :as schema]
-            [app.config :as config]))
+            [app.config :as config]
+            [app.util :refer [delay!]]
+            [app.util.dom :refer [scroll-chatroom!]]))
 
 (declare dispatch!)
 
@@ -51,6 +53,7 @@
   (connect!)
   (add-watch *store :changes #(render-app! render!))
   (add-watch *states :changes #(render-app! render!))
+  (delay! 2 (fn [] (scroll-chatroom!)))
   (println "App started!"))
 
 (defn reload! [] (clear-cache!) (render-app! render!) (println "Code updated."))
