@@ -18,5 +18,6 @@
             :user/log-out user/log-out
             :router/change router/change
             :mood/add-message mood/add-message
+            :mood/archive mood/archive
             (do (println "Unknown op:" op) identity))]
     (f db op-data sid op-id op-time)))

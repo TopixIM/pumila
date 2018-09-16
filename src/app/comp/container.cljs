@@ -13,7 +13,8 @@
             [app.config :refer [dev?]]
             [app.schema :as schema]
             [app.config :as config]
-            [app.comp.chatroom :refer [comp-chatroom]]))
+            [app.comp.chatroom :refer [comp-chatroom]]
+            [app.comp.archives :refer [comp-archives]]))
 
 (defcomp
  comp-offline
@@ -66,6 +67,7 @@
         (case (:name router)
           :home (cursor-> :chat comp-chatroom states (:data router))
           :profile (comp-profile (:user store) (:data router))
+          :archives (comp-archives (:data router))
           (<> router))
         (comp-login states))
       (comment comp-status-color (:color store))

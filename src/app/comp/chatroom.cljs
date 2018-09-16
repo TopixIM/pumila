@@ -48,6 +48,14 @@
     :min-width 60,
     :border :none}))
 
+(def style-system-tip
+  {:line-height "24px",
+   :font-size 12,
+   :color :white,
+   :background-color (hsl 0 0 80),
+   :padding "0 8px",
+   :border-radius "4px"})
+
 (defcomp
  comp-chatroom
  (states router-data)
@@ -67,26 +75,28 @@
    (div
     {:style (merge ui/flex ui/column)}
     (div
-     {:style (merge ui/center {:background-color (hsl 0 0 94), :padding 8})}
-     (span
-      {:style {:line-height "24px",
-               :font-size 12,
-               :color :white,
-               :background-color (hsl 0 0 80),
-               :padding "0 8px",
-               :border-radius "4px"},
-       :inner-text "View history",
-       :on-click (fn [e d! m!] (println "TODO"))}))
-    (div
      {:class-name "chatroom-list",
       :style (merge ui/flex {:background-color (hsl 0 0 94), :overflow :auto})}
+     (div
+      {:style (merge ui/center {:background-color (hsl 0 0 94), :padding 8})}
+      (span
+       {:style style-system-tip,
+        :inner-text "View history",
+        :on-click (fn [e d! m!] (d! :router/change {:name :archives}))}))
      (list->
       {}
       (->> router-data
            (sort-by (fn [[k message]] (:time message)))
            (map
             (fn [[k message]]
-              [k (if (= :mood (:kind message)) (comp-mood message) (comp-response message))])))))
+              [k (if (= :mood (:kind message)) (comp-mood message) (comp-response message))]))))
+     (when (not (empty? router-data))
+       (div
+        {:style (merge ui/center {:background-color (hsl 0 0 94), :padding 8})}
+        (span
+         {:style style-system-tip,
+          :inner-text "Archive moods",
+          :on-click (fn [e d! m!] (d! :mood/archive nil))}))))
     (div
      {:style (merge
               ui/row

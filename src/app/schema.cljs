@@ -23,5 +23,5 @@
    :avatar nil,
    :password nil,
    :moods {},
-   :archived {},
+   :archived-moods {},
    :history-mark 0})
