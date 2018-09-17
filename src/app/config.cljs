@@ -15,8 +15,8 @@
    :icon "http://cdn.tiye.me/logo/pumila.png",
    :dev-ui "http://localhost:8100/main.css",
    :release-ui "http://cdn.tiye.me/favored-fonts/main.css",
-   :cdn-url "http://cdn.tiye.me/11011/",
-   :cdn-folder "tiye.me:cdn/11011",
+   :cdn-url "http://cdn.tiye.me/pumila/",
+   :cdn-folder "tiye.me:cdn/pumila",
    :upload-folder "tiye.me:repo/TopixIM/pumila/",
    :server-folder "tiye.me:servers/pumila",
-   :theme "#FFB300"})
+   :theme "black"})

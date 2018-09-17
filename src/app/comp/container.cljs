@@ -13,9 +13,8 @@
             [app.config :refer [dev?]]
             [app.schema :as schema]
             [app.config :as config]
-            [app.comp.home :refer [comp-home]]
-            [app.comp.moods :refer [comp-moods]]
-            [app.comp.creator :refer [comp-creator]]))
+            [app.comp.chatroom :refer [comp-chatroom]]
+            [app.comp.archives :refer [comp-archives]]))
 
 (defcomp
  comp-offline
@@ -66,16 +65,21 @@
       (comp-navigation (:logged-in? store) (:count store))
       (if (:logged-in? store)
         (case (:name router)
-          :home (comp-home)
-          :creator (comp-creator states)
+          :home (cursor-> :chat comp-chatroom states (:data router))
           :profile (comp-profile (:user store) (:data router))
-          :moods (comp-moods (:data router))
+          :archives (comp-archives (:data router))
           (<> router))
         (comp-login states))
-      (comp-status-color (:color store))
-      (when dev? (comp-inspect "Store" store {:bottom 0, :left 0, :max-width "100%"}))
+      (comment comp-status-color (:color store))
+      (comment
+       when
+       dev?
+       (comp-inspect "Store" store {:bottom 100, :left 0, :max-width "100%"}))
       (comp-messages
        (get-in store [:session :messages])
        {}
        (fn [info d! m!] (d! :session/remove-message info)))
-      (when dev? (comp-reel (:reel-length store) {}))))))
+      (comment
+       when
+       dev?
+       (comp-reel (:reel-length store) {:bottom 100, :background-color :white}))))))

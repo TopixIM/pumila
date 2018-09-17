@@ -26,6 +26,10 @@
 
 (defn log-out [db op-data sid op-id op-time] (assoc-in db [:sessions sid :user-id] nil))
 
+(defn reset-mark [db op-data sid op-id op-time]
+  (let [user-id (get-in db [:sessions sid :user-id])]
+    (assoc-in db [:users user-id :history-mark] op-time)))
+
 (defn sign-up [db op-data sid op-id op-time]
   (let [[username password] op-data
         maybe-user (find-first (fn [user] (= username (:name user))) (vals (:users db)))]
