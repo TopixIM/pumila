@@ -40,6 +40,15 @@
     :on-close! (fn [event] (reset! *store nil) (.error js/console "Lost connection!")),
     :on-open! (fn [event] (simulate-login!))}))
 
+(defn change-opacity! [x]
+  (js/setTimeout
+   (fn []
+     (let [next-x (- x 0.0125)]
+       (if (pos? next-x)
+         (do (dispatch! :session/opacity next-x) (change-opacity! next-x))
+         (dispatch! :session/opacity 0))))
+   1000))
+
 (def mount-target (.querySelector js/document ".app"))
 
 (defn render-app! [renderer]
@@ -54,6 +63,7 @@
   (add-watch *store :changes #(render-app! render!))
   (add-watch *states :changes #(render-app! render!))
   (delay! 2 (fn [] (scroll-chatroom!)))
+  (comment change-opacity! 1)
   (println "App started!"))
 
 (defn reload! [] (clear-cache!) (render-app! render!) (println "Code updated."))
