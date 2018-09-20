@@ -67,7 +67,7 @@
         (case (:name router)
           :home (cursor-> :chat comp-chatroom states (:data router))
           :profile (comp-profile (:user store) (:data router))
-          :archives (comp-archives (:data router))
+          :archives (cursor-> :archives comp-archives states (:data router))
           (<> router))
         (comp-login states))
       (comment comp-status-color (:color store))
