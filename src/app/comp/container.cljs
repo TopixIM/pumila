@@ -65,7 +65,7 @@
       (comp-navigation (:logged-in? store) (:count store))
       (if (:logged-in? store)
         (case (:name router)
-          :home (cursor-> :chat comp-chatroom states (:data router))
+          :home (cursor-> :chat comp-chatroom states (:data router) (:opacity session))
           :profile (comp-profile (:user store) (:data router))
           :archives (cursor-> :archives comp-archives states (:data router))
           (<> router))

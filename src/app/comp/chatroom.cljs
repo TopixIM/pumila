@@ -29,9 +29,9 @@
 
 (defcomp
  comp-response
- (message)
+ (message opacity)
  (div
-  {:style (merge ui/row {:padding "8px 16px"})}
+  {:style (merge ui/row {:padding "8px 16px", :opacity opacity})}
   (img
    {:src "http://cdn.tiye.me/logo/yuuki.png",
     :style (let [size 40] {:width 40, :height 40})})
@@ -58,7 +58,7 @@
 
 (defcomp
  comp-chatroom
- (states router-data)
+ (states router-data opacity)
  (let [state (or (:data states) {:draft ""})
        on-submit (fn [d! m!]
                    (when (not (string/blank? (:draft state)))
@@ -89,7 +89,10 @@
            (sort-by (fn [[k message]] (:time message)))
            (map
             (fn [[k message]]
-              [k (if (= :mood (:kind message)) (comp-mood message) (comp-response message))]))))
+              [k
+               (if (= :mood (:kind message))
+                 (comp-mood message)
+                 (comp-response message opacity))]))))
      (when (not (empty? router-data))
        (div
         {:style (merge ui/center {:background-color (hsl 0 0 94), :padding 8})}

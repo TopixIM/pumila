@@ -14,7 +14,8 @@
    :id nil,
    :nickname nil,
    :router {:name :home, :data nil, :router nil},
-   :messages {}})
+   :messages {},
+   :opacity 1})
 
 (def user
   {:name nil,

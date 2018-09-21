@@ -19,5 +19,6 @@
             :router/change router/change
             :mood/add-message mood/add-message
             :mood/archive mood/archive
+            :session/opacity session/opacity
             (do (println "Unknown op:" op) identity))]
     (f db op-data sid op-id op-time)))
