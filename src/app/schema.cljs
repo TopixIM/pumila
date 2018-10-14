@@ -1,28 +1,17 @@
 
 (ns app.schema )
 
-(def database {:sessions {}, :users {}})
-
-(def message {:id nil, :text "", :time 0, :kind :mood})
-
-(def notification {:id nil, :kind nil, :text nil})
-
 (def router {:name nil, :title nil, :data {}, :router nil})
 
 (def session
   {:user-id nil,
    :id nil,
    :nickname nil,
-   :router {:name :home, :data nil, :router nil},
-   :messages {},
-   :opacity 1})
+   :router (do router {:name :home, :data nil, :router nil}),
+   :messages {}})
 
-(def user
-  {:name nil,
-   :id nil,
-   :nickname nil,
-   :avatar nil,
-   :password nil,
-   :moods {},
-   :archived-moods {},
-   :history-mark 0})
+(def user {:name nil, :id nil, :nickname nil, :avatar nil, :password nil})
+
+(def database {:sessions (do session {}), :users (do user {})})
+
+(def notification {:id nil, :kind nil, :text nil})

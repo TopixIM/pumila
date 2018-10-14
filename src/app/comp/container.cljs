@@ -12,9 +12,7 @@
             [app.comp.reel :refer [comp-reel]]
             [app.config :refer [dev?]]
             [app.schema :as schema]
-            [app.config :as config]
-            [app.comp.chatroom :refer [comp-chatroom]]
-            [app.comp.archives :refer [comp-archives]]))
+            [app.config :as config]))
 
 (defcomp
  comp-offline
@@ -65,9 +63,8 @@
       (comp-navigation (:logged-in? store) (:count store))
       (if (:logged-in? store)
         (case (:name router)
-          :home (cursor-> :chat comp-chatroom states (:data router) (:opacity session))
+          :home (<> "home")
           :profile (comp-profile (:user store) (:data router))
-          :archives (cursor-> :archives comp-archives states (:data router))
           (<> router))
         (comp-login states))
       (comment comp-status-color (:color store))

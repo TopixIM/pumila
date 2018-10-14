@@ -36,13 +36,6 @@
   (div
    {}
    (button
-    {:style (merge ui/button {:color :red, :border-color :red}),
-     :on-click (fn [e dispatch! mutate!] (dispatch! :user/reset-mark nil))}
-    (<> "Reset history")))
-  (=< nil 48)
-  (div
-   {}
-   (button
     {:style (merge ui/button),
      :on-click (fn [e d! m!]
        (.replace js/location (str js/location.origin "?time=" (.now js/Date))))}
