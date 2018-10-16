@@ -12,7 +12,9 @@
             [app.comp.reel :refer [comp-reel]]
             [app.config :refer [dev?]]
             [app.schema :as schema]
-            [app.config :as config]))
+            [app.config :as config]
+            [app.comp.dashboard :refer [comp-dashboard]]
+            [app.comp.emotions :refer [comp-emotions-manager]]))
 
 (defcomp
  comp-offline
@@ -63,7 +65,8 @@
       (comp-navigation (:logged-in? store) (:count store))
       (if (:logged-in? store)
         (case (:name router)
-          :home (<> "home")
+          :home (comp-dashboard)
+          :emotions (comp-emotions-manager)
           :profile (comp-profile (:user store) (:data router))
           (<> router))
         (comp-login states))

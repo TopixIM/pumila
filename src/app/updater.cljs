@@ -3,7 +3,6 @@
   (:require [app.updater.session :as session]
             [app.updater.user :as user]
             [app.updater.router :as router]
-            [app.updater.mood :as mood]
             [app.schema :as schema]
             [respo-message.updater :refer [update-messages]]))
 
