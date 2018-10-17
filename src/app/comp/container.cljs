@@ -14,7 +14,8 @@
             [app.schema :as schema]
             [app.config :as config]
             [app.comp.dashboard :refer [comp-dashboard]]
-            [app.comp.emotions :refer [comp-emotions-manager]]))
+            [app.comp.emotions :refer [comp-emotions-manager]]
+            [app.comp.history :refer [comp-history]]))
 
 (defcomp
  comp-offline
@@ -67,14 +68,12 @@
         (case (:name router)
           :home (comp-dashboard)
           :emotions (comp-emotions-manager)
+          :history (comp-history)
           :profile (comp-profile (:user store) (:data router))
           (<> router))
         (comp-login states))
       (comment comp-status-color (:color store))
-      (comment
-       when
-       dev?
-       (comp-inspect "Store" store {:bottom 100, :left 0, :max-width "100%"}))
+      (when dev? (comp-inspect "Store" store {:bottom 20, :left 0, :max-width "100%"}))
       (comp-messages
        (get-in store [:session :messages])
        {}

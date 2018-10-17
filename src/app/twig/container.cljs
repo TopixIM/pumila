@@ -20,18 +20,15 @@
    (merge
     base-data
     (if logged-in?
-      (let [user (get-in db [:users (:user-id session)]), moods (:moods user)]
+      (let [user (get-in db [:users (:user-id session)])]
         {:user (twig-user user),
          :router (assoc
                   router
                   :data
                   (case (:name router)
-                    :home
-                      (->> moods
-                           (filter
-                            (fn [[k message]] (> (:time message) (:history-mark user))))
-                           (into {}))
-                    :archives (:archived-moods user)
+                    :home (:emotions user)
+                    :history {:emotions (:emotions user), :moods (:moods user)}
+                    :emotions (:emotions user)
                     :profile (twig-members (:sessions db) (:users db))
                     {})),
          :count (count (:sessions db)),
