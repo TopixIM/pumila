@@ -13,4 +13,8 @@
   {:style {:padding "8px 16px"}}
   (<> "emotions")
   (div {})
-  (div {} (button {:style ui/button} (<> "New emotion")))))
+  (div
+   {}
+   (button
+    {:style ui/button, :on-click (action-> :router/change {:name :edit-emotion, :data nil})}
+    (<> "New emotion")))))

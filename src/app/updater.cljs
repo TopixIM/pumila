@@ -4,7 +4,8 @@
             [app.updater.user :as user]
             [app.updater.router :as router]
             [app.schema :as schema]
-            [respo-message.updater :refer [update-messages]]))
+            [respo-message.updater :refer [update-messages]]
+            [app.updater.emotion :as emotion]))
 
 (defn updater [db op op-data sid op-id op-time]
   (let [f (case op
@@ -15,5 +16,6 @@
             :user/sign-up user/sign-up
             :user/log-out user/log-out
             :router/change router/change
+            :emotion/create-one emotion/create-one
             (do (println "Unknown op:" op) identity))]
     (f db op-data sid op-id op-time)))

@@ -21,6 +21,7 @@
     base-data
     (if logged-in?
       (let [user (get-in db [:users (:user-id session)])]
+        (println "Router" router)
         {:user (twig-user user),
          :router (assoc
                   router
@@ -29,8 +30,10 @@
                     :home (:emotions user)
                     :history {:emotions (:emotions user), :moods (:moods user)}
                     :emotions (:emotions user)
+                    :edit-emotion
+                      (if (nil? (:data router)) nil (get-in user [:emotions (:data router)]))
                     :profile (twig-members (:sessions db) (:users db))
-                    {})),
+                    (do))),
          :count (count (:sessions db)),
          :color (color/randomColor)})
       nil))))

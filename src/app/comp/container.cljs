@@ -15,7 +15,8 @@
             [app.config :as config]
             [app.comp.dashboard :refer [comp-dashboard]]
             [app.comp.emotions :refer [comp-emotions-manager]]
-            [app.comp.history :refer [comp-history]]))
+            [app.comp.history :refer [comp-history]]
+            [app.comp.emotion-form :refer [comp-emotion-form]]))
 
 (defcomp
  comp-offline
@@ -68,6 +69,7 @@
         (case (:name router)
           :home (comp-dashboard)
           :emotions (comp-emotions-manager)
+          :edit-emotion (cursor-> :form comp-emotion-form states router-data)
           :history (comp-history)
           :profile (comp-profile (:user store) (:data router))
           (<> router))
