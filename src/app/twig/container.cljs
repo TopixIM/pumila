@@ -21,6 +21,7 @@
     base-data
     (if logged-in?
       (let [user (get-in db [:users (:user-id session)])]
+        (println "user" user)
         {:user (twig-user user),
          :router (assoc
                   router

@@ -7,8 +7,7 @@
             [app.connection :refer [send! setup-socket!]]
             [app.schema :as schema]
             [app.config :as config]
-            [app.util :refer [delay!]]
-            [app.util.dom :refer [scroll-chatroom!]]))
+            [app.util :refer [delay!]]))
 
 (declare dispatch!)
 
@@ -27,7 +26,7 @@
       (do (println "Found no storage.")))))
 
 (defn dispatch! [op op-data]
-  (println "Dispatch" op op-data)
+  (when config/dev? (println "Dispatch" op op-data))
   (case op
     :states (reset! *states ((mutate op-data) @*states))
     :effect/connect (connect!)
@@ -39,15 +38,6 @@
    {:url (str "ws://" (.-hostname js/location) ":" (:port config/site)),
     :on-close! (fn [event] (reset! *store nil) (.error js/console "Lost connection!")),
     :on-open! (fn [event] (simulate-login!))}))
-
-(defn change-opacity! [x]
-  (js/setTimeout
-   (fn []
-     (let [next-x (- x 0.0125)]
-       (if (pos? next-x)
-         (do (dispatch! :session/opacity next-x) (change-opacity! next-x))
-         (dispatch! :session/opacity 0))))
-   1000))
 
 (def mount-target (.querySelector js/document ".app"))
 
@@ -62,8 +52,6 @@
   (connect!)
   (add-watch *store :changes #(render-app! render!))
   (add-watch *states :changes #(render-app! render!))
-  (delay! 2 (fn [] (scroll-chatroom!)))
-  (comment change-opacity! 1)
   (println "App started!"))
 
 (defn reload! [] (clear-cache!) (render-app! render!) (println "Code updated."))

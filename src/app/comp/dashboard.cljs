@@ -3,24 +3,61 @@
   (:require [hsl.core :refer [hsl]]
             [respo-ui.core :as ui]
             [respo.comp.space :refer [=<]]
-            [respo.macros :refer [defcomp <> action-> span div a]]
-            [app.config :as config]))
+            [respo.macros :refer [defcomp <> action-> list-> span div input a button]]
+            [app.config :as config]
+            [app.comp.emotions :refer [comp-emotion]]
+            [respo.util.list :refer [map-val]]
+            [inflow-popup.comp.dialog :refer [comp-dialog]]
+            [app.comp.kit :refer [comp-title]]))
 
 (defcomp
  comp-dashboard
- ()
- (div
-  {:style {:padding "8px 16px"}}
-  (<> "dashboard")
-  (=< nil 16)
-  (div
-   {}
-   (a
-    {:style ui/link, :on-click (action-> :router/change {:name :emotions})}
-    (<> "Manage emotions")))
-  (=< nil 16)
-  (div
-   {}
-   (a
-    {:style ui/link, :on-click (action-> :router/change {:name :history})}
-    (<> "View history")))))
+ (states emotions)
+ (let [state (or (:data states) {:show-editor? false, :emotion-id nil, :draft ""})]
+   (div
+    {:style {:padding "8px 16px"}}
+    (comp-title "What do you feel now?")
+    (list->
+     emotions
+     (->> emotions
+          (sort-by (fn [[k emotion]] (unchecked-negate (:score emotion))))
+          (map-val
+           (fn [emotion]
+             (comp-emotion
+              emotion
+              (fn [e d! m!]
+                (m! (merge state {:show-editor? true, :emotion-id (:id emotion)}))))))))
+    (=< nil 16)
+    (div
+     {}
+     (a
+      {:style ui/link, :on-click (action-> :router/change {:name :emotions})}
+      (<> "Manage emotions")))
+    (=< nil 16)
+    (div
+     {}
+     (a
+      {:style ui/link, :on-click (action-> :router/change {:name :history})}
+      (<> "View history")))
+    (when (:show-editor? state)
+      (comp-dialog
+       (fn [mutate!] (mutate! %cursor (assoc state :show-editor? false)))
+       (div
+        {}
+        (div {} (comp-emotion (get emotions (:emotion-id state)) (fn [] )))
+        (div
+         {}
+         (input
+          {:style ui/input,
+           :value (:draft state),
+           :on-input (fn [e d! m!] (m! (assoc state :draft (:value e))))}))
+        (=< nil 8)
+        (div
+         {:style ui/row-parted}
+         (span {})
+         (button
+          {:style ui/button,
+           :inner-text "Submit",
+           :on-click (fn [e d! m!]
+             (d! :mood/create-one {:text (:draft state), :emotion-id (:emotion-id state)})
+             (m! (assoc state :show-editor? false :draft "")))}))))))))

@@ -9,6 +9,20 @@
   (:require-macros [clojure.core.strint :refer [<<]]))
 
 (defcomp
+ comp-emotion
+ (emotion on-click!)
+ (div
+  {:style {:background-color (:color emotion),
+           :display :inline-block,
+           :padding "0 16px",
+           :line-height "32px",
+           :margin "0 8px 8px 0",
+           :border-radius "16px",
+           :color :white},
+   :on-click on-click!}
+  (<> (:text emotion))))
+
+(defcomp
  comp-emotions-manager
  (emotions)
  (div
@@ -27,15 +41,7 @@
     (->> emotions
          (map-val
           (fn [emotion]
-            (div
-             {:style {:background-color (:color emotion),
-                      :display :inline-block,
-                      :padding "0 12px",
-                      :line-height "32px",
-                      :margin "0 8px 8px 0",
-                      :border-radius "8px",
-                      :color :white},
-              :on-click (action-> :router/change {:name :edit-emotion, :data (:id emotion)})}
-             (<> (:text emotion))
-             (<> (:score emotion))))))))
+            (comp-emotion
+             emotion
+             (fn [e d! m!] (d! :router/change {:name :edit-emotion, :data (:id emotion)}))))))))
   (=< nil 32)))
