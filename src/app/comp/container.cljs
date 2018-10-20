@@ -22,11 +22,7 @@
  comp-offline
  ()
  (div
-  {:style (merge
-           ui/global
-           ui/fullscreen
-           ui/column-dispersive
-           {:background-color (:theme config/site)})}
+  {:style (merge ui/global ui/fullscreen ui/column-dispersive {:background-color :white})}
   (div {:style {:height 0}})
   (div
    {:style {:background-image (str "url(" (:icon config/site) ")"),

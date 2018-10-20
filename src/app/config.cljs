@@ -1,7 +1,5 @@
 
-(ns app.config
-  (:require [app.util :refer [get-env!]])
-  (:require-macros [clojure.core.strint :refer [<<]] [build.util :refer [get-ip!]]))
+(ns app.config (:require [app.util :refer [get-env!]]))
 
 (def bundle-builds #{"release" "local-bundle"})
 
@@ -15,10 +13,10 @@
    :port 11011,
    :title "Pumila",
    :icon "http://cdn.tiye.me/logo/pumila.png",
-   :dev-ui (<< "http://~{(get-ip!)}:8080/main.js"),
+   :dev-ui "http://localhost:8100/main.css",
    :release-ui "http://cdn.tiye.me/favored-fonts/main.css",
    :cdn-url "http://cdn.tiye.me/pumila/",
    :cdn-folder "tiye.me:cdn/pumila",
    :upload-folder "tiye.me:repo/TopixIM/pumila/",
    :server-folder "tiye.me:servers/pumila",
-   :theme "black"})
+   :theme "#6EBAEE"})
