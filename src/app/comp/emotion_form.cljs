@@ -8,33 +8,34 @@
              [defcomp <> action-> mutation-> cursor-> span div button input]]
             [app.config :as config]
             [app.schema :as schema]
-            [respo-alerts.comp.alerts :refer [comp-confirm]]))
+            [respo-alerts.comp.alerts :refer [comp-confirm]]
+            [app.comp.kit :refer [comp-field comp-title]]))
 
 (defcomp
  comp-emotion-form
  (states data)
  (let [form (or (:data states) (or data schema/emotion)), editing? (some? (:id form))]
-   (println "rendering state" form)
    (div
     {:style {:padding "8px 16px"}}
-    (<> "emotions-form")
-    (div
-     {}
+    (div {} (comp-title "Emotion details"))
+    (=< nil 16)
+    (comp-field
+     "Name"
      (input
       {:style ui/input,
        :value (:text form),
        :on-input (mutation-> (assoc form :text (:value %e)))}))
-    (div
-     {}
+    (comp-field
+     "Score"
      (input
       {:style ui/input,
        :value (:score form),
        :type "number",
        :on-input (mutation-> (assoc form :score (:value %e)))}))
-    (div
-     {}
+    (comp-field
+     "Color"
      (input
-      {:style ui/input,
+      {:style (merge ui/input {:font-family ui/font-code}),
        :value (:color form),
        :on-input (mutation-> (assoc form :color (:value %e)))}))
     (=< nil 16)

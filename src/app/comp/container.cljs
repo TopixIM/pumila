@@ -66,7 +66,13 @@
           :home (cursor-> :dashboard comp-dashboard states router-data)
           :emotions (comp-emotions-manager router-data)
           :edit-emotion (cursor-> :form comp-emotion-form states router-data)
-          :history (comp-history (:moods router-data) (:emotions router-data))
+          :history
+            (cursor->
+             :history
+             comp-history
+             states
+             (:moods router-data)
+             (:emotions router-data))
           :profile (comp-profile (:user store) router-data)
           (<> router))
         (comp-login states))

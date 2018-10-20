@@ -8,7 +8,8 @@
             [app.comp.emotions :refer [comp-emotion]]
             [respo.util.list :refer [map-val]]
             [inflow-popup.comp.dialog :refer [comp-dialog]]
-            [app.comp.kit :refer [comp-title]]))
+            [app.comp.kit :refer [comp-title]]
+            [respo-ui.comp.icon :refer [comp-icon]]))
 
 (defcomp
  comp-dashboard
@@ -17,6 +18,7 @@
    (div
     {:style {:padding "8px 16px"}}
     (comp-title "What do you feel now?")
+    (=< nil 16)
     (list->
      emotions
      (->> emotions
@@ -27,12 +29,14 @@
               emotion
               (fn [e d! m!]
                 (m! (merge state {:show-editor? true, :emotion-id (:id emotion)}))))))))
-    (=< nil 16)
+    (=< nil 0)
     (div
-     {}
+     {:style ui/row-parted}
+     (span {})
      (a
-      {:style ui/link, :on-click (action-> :router/change {:name :emotions})}
-      (<> "Manage emotions")))
+      {:style (merge ui/link {:font-size 16}),
+       :on-click (action-> :router/change {:name :emotions})}
+      (comp-icon :android-settings)))
     (=< nil 16)
     (div
      {}
@@ -43,13 +47,15 @@
       (comp-dialog
        (fn [mutate!] (mutate! %cursor (assoc state :show-editor? false)))
        (div
-        {}
+        {:style {:min-width 240}}
+        (div {} (comp-title "Record the mood"))
         (div {} (comp-emotion (get emotions (:emotion-id state)) (fn [] )))
         (div
          {}
          (input
-          {:style ui/input,
+          {:style (merge ui/input {:width "100%"}),
            :value (:draft state),
+           :placeholder "Some notes...",
            :on-input (fn [e d! m!] (m! (assoc state :draft (:value e))))}))
         (=< nil 8)
         (div

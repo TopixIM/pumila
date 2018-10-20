@@ -7,6 +7,14 @@
             [respo.comp.space :refer [=<]]
             [app.config :as config]))
 
+(defcomp
+ comp-field
+ (label child)
+ (div
+  {:style (merge ui/row-middle {:margin-bottom 16})}
+  (div {:style {:width 64}} (<> label))
+  child))
+
 (defcomp comp-hint (text) (<> text {:color (hsl 0 0 80)}))
 
 (defcomp
