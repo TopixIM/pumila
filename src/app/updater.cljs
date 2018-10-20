@@ -17,5 +17,6 @@
             :user/log-out user/log-out
             :router/change router/change
             :emotion/create-one emotion/create-one
+            :emotion/remove-one emotion/remove-one
             (do (println "Unknown op:" op) identity))]
     (f db op-data sid op-id op-time)))

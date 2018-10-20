@@ -68,7 +68,7 @@
       (if (:logged-in? store)
         (case (:name router)
           :home (comp-dashboard)
-          :emotions (comp-emotions-manager)
+          :emotions (comp-emotions-manager (:data router))
           :edit-emotion (cursor-> :form comp-emotion-form states router-data)
           :history (comp-history)
           :profile (comp-profile (:user store) (:data router))
