@@ -3,7 +3,7 @@
   (:require [hsl.core :refer [hsl]]
             [respo-ui.core :as ui]
             [respo.comp.space :refer [=<]]
-            [respo.macros
+            [respo.core
              :refer
              [defcomp <> action-> mutation-> cursor-> span div button input]]
             [app.config :as config]

@@ -3,7 +3,7 @@
   (:require [hsl.core :refer [hsl]]
             [respo-ui.core :as ui]
             [respo.comp.space :refer [=<]]
-            [respo.macros :refer [defcomp <> action-> list-> cursor-> span div a]]
+            [respo.core :refer [defcomp <> action-> list-> cursor-> span div a]]
             [app.config :as config]
             [app.comp.kit :refer [comp-title]]
             [respo.util.list :refer [map-val]]
