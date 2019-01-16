@@ -18,20 +18,17 @@
  comp-record
  (states mood emotions)
  (div
-  {:style {:border-bottom (<< "1px solid ~{(hsl 0 0 90)}"), :padding "8px 0"}}
+  {:class-name "",
+   :style {:border-bottom (<< "1px solid ~{(hsl 0 0 90)}"), :padding "8px 0"}}
   (div
    {:style ui/column}
    (comp-hint (-> (dayjs (:time mood)) (.format "MM-DD HH:mm")))
    (div
-    {:style ui/row-parted}
-    (span
-     {:style ui/row-middle}
-     (div
-      {:style ui/row-parted}
-      (span {})
-      (comp-emotion (get emotions (:emotion-id mood)) nil))
-     (=< 8 nil)
-     (<> (:text mood)))
+    {:style (merge ui/row-parted {:align-items :flex-start})}
+    (comp-emotion (get emotions (:emotion-id mood)) nil)
+    (=< 8 nil)
+    (div {:inner-text (:text mood), :style (merge ui/flex {:word-break :break-all})})
+    (=< 8 nil)
     (cursor->
      :confirm
      comp-confirm
@@ -44,10 +41,10 @@
  comp-history
  (states moods emotions)
  (div
-  {:style {:padding "8px 16px"}}
-  (div {:style {:margin "8px 0"}} (comp-title "History"))
+  {:style (merge ui/flex ui/column {:overflow :auto})}
+  (div {:style {:margin "8px 0", :padding "8px 16px"}} (comp-title "History"))
   (list->
-   {}
+   {:style (merge ui/flex {:width "100%", :padding "8px 16px"})}
    (->> moods
         (sort-by (fn [[k mood]] (unchecked-negate (:time mood))))
         (map-val (fn [mood] (cursor-> (:id mood) comp-record states mood emotions)))))))
