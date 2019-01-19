@@ -19,23 +19,23 @@
  (states mood emotions)
  (div
   {:class-name "",
-   :style {:border-bottom (<< "1px solid ~{(hsl 0 0 90)}"), :padding "8px 0"}}
+   :style (merge
+           ui/column
+           {:border-bottom (<< "1px solid ~{(hsl 0 0 90)}"), :padding "8px 0"})}
   (div
-   {:style ui/column}
-   (comp-hint (-> (dayjs (:time mood)) (.format "MM-DD HH:mm")))
+   {:style ui/row-parted}
    (div
-    {:style (merge ui/row-parted {:align-items :flex-start})}
+    {:style ui/row-middle}
     (comp-emotion (get emotions (:emotion-id mood)) nil)
-    (=< 8 nil)
-    (div {:inner-text (:text mood), :style (merge ui/flex {:word-break :break-all})})
-    (=< 8 nil)
-    (cursor->
-     :confirm
-     comp-confirm
-     states
-     {:trigger (span {:style {:color (hsl 0 0 80)}} (comp-icon :close)),
-      :text "Sure to delete?"}
-     (fn [e d! m!] (d! :mood/remove-one (:id mood))))))))
+    (comp-hint (-> (dayjs (:time mood)) (.format "MM-DD HH:mm"))))
+   (cursor->
+    :confirm
+    comp-confirm
+    states
+    {:trigger (span {:style {:color (hsl 0 0 80)}} (comp-icon :close)),
+     :text "Sure to delete?"}
+    (fn [e d! m!] (d! :mood/remove-one (:id mood)))))
+  (div {:inner-text (:text mood), :style (merge ui/flex {:word-break :break-all})})))
 
 (defcomp
  comp-history

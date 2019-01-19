@@ -6,13 +6,15 @@
             [cumulo-reel.core :refer [reel-reducer refresh-reel reel-schema]]
             ["fs" :as fs]
             ["path" :as path]
+            ["chalk" :as chalk]
             [app.config :as config]
             [cumulo-util.file :refer [write-mildly! get-backup-path! merge-local-edn!]]
             [cumulo-util.core :refer [id! repeat! unix-time! delay!]]
             [app.twig.container :refer [twig-container]]
             [recollect.diff :refer [diff-twig]]
             [recollect.twig :refer [render-twig]]
-            [ws-edn.server :refer [wss-serve! wss-send! wss-each!]]))
+            [ws-edn.server :refer [wss-serve! wss-send! wss-each!]])
+  (:require-macros [clojure.core.strint :refer [<<]]))
 
 (defonce *client-caches (atom {}))
 
@@ -58,7 +60,9 @@
            old-store (or (get @*client-caches sid) nil)
            new-store (render-twig (twig-container db session records) old-store)
            changes (diff-twig old-store new-store {:key :id})]
-       (println "Changes for" sid ":" changes (count records))
+       (println
+        (let [changes-text (subs (pr-str changes) 0 100)]
+          (.gray chalk (<< "Changes for ~{sid}: ~{changes-text}"))))
        (if (not= changes [])
          (do
           (wss-send! sid {:kind :patch, :data changes})

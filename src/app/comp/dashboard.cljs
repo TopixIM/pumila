@@ -3,7 +3,9 @@
   (:require [hsl.core :refer [hsl]]
             [respo-ui.core :as ui]
             [respo.comp.space :refer [=<]]
-            [respo.core :refer [defcomp <> action-> list-> span div input a button]]
+            [respo.core
+             :refer
+             [defcomp <> action-> list-> span div input a button textarea]]
             [app.config :as config]
             [app.comp.emotions :refer [comp-emotion]]
             [respo.util.list :refer [map-val]]
@@ -48,12 +50,15 @@
        (fn [mutate!] (mutate! %cursor (assoc state :show-editor? false)))
        (div
         {:style {:min-width 240}}
-        (div {} (comp-title "Record the mood"))
-        (div {} (comp-emotion (get emotions (:emotion-id state)) (fn [] )))
+        (div
+         {:style ui/row-middle}
+         (<> "In mood")
+         (=< 8 nil)
+         (comp-emotion (get emotions (:emotion-id state)) (fn [] )))
         (div
          {}
-         (input
-          {:style (merge ui/input {:width "100%"}),
+         (textarea
+          {:style (merge ui/textarea {:width "100%"}),
            :value (:draft state),
            :placeholder "Some notes...",
            :on-input (fn [e d! m!] (m! (assoc state :draft (:value e))))}))
