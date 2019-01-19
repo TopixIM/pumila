@@ -11,7 +11,7 @@
  comp-field
  (label child)
  (div
-  {:style (merge ui/row-middle {:margin-bottom 16})}
+  {:style (merge ui/row {:margin-bottom 16})}
   (div {:style {:width 64}} (<> label))
   child))
 

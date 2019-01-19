@@ -5,11 +5,38 @@
             [respo.comp.space :refer [=<]]
             [respo.core
              :refer
-             [defcomp <> action-> mutation-> cursor-> span div button input]]
+             [defcomp <> action-> list-> mutation-> cursor-> span div button input]]
             [app.config :as config]
             [app.schema :as schema]
             [respo-alerts.comp.alerts :refer [comp-confirm]]
             [app.comp.kit :refer [comp-field comp-title]]))
+
+(def default-colors
+  ["hsl(238,83%,87%)"
+   "hsl(43,87%,55%)"
+   "hsl(292,77%,44%)"
+   "hsl(122,77%,77%)"
+   "hsl(166,55%,22%)"])
+
+(defcomp
+ comp-color-picker
+ (form on-pick)
+ (list->
+  {}
+  (->> default-colors
+       (map
+        (fn [color]
+          [color
+           (div
+            {:style (let [size 24]
+               {:background-color color,
+                :height size,
+                :width size,
+                :border-radius "6px",
+                :display :inline-block,
+                :margin "0 8px 8px 0",
+                :cursor :pointer}),
+             :on-click (fn [e d! m!] (on-pick color d! m!))})])))))
 
 (defcomp
  comp-emotion-form
@@ -34,10 +61,14 @@
        :on-input (mutation-> (assoc form :score (:value %e)))}))
     (comp-field
      "Color"
-     (input
-      {:style (merge ui/input {:font-family ui/font-code}),
-       :value (:color form),
-       :on-input (mutation-> (assoc form :color (:value %e)))}))
+     (div
+      {:style ui/column}
+      (input
+       {:style (merge ui/input {:font-family ui/font-code}),
+        :value (:color form),
+        :on-input (mutation-> (assoc form :color (:value %e)))})
+      (=< nil 8)
+      (comp-color-picker form (fn [color d! m!] (m! %cursor (assoc form :color color))))))
     (=< nil 16)
     (div
      {:style ui/row-parted}
@@ -67,4 +98,4 @@
           (d! :emotion/create-one form)
           (m! nil)
           (d! :router/change {:name :emotions})),
-        :inner-text (if editing? "Edit" "Create")}))))))
+        :inner-text (if editing? "Save" "Create")}))))))
