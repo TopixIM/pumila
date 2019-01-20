@@ -12,11 +12,7 @@
             [app.comp.kit :refer [comp-field comp-title]]))
 
 (def default-colors
-  ["hsl(238,83%,87%)"
-   "hsl(43,87%,55%)"
-   "hsl(292,77%,44%)"
-   "hsl(122,77%,77%)"
-   "hsl(166,55%,22%)"])
+  ["#ff9e96" "#e7e5e5" "#baf9c2" "#c6ded2" "#5facf6" "#c390e8" "#ffdd57" "#f79800" "#cf0027"])
 
 (defcomp
  comp-color-picker
