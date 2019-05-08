@@ -11,7 +11,7 @@
             [respo.util.list :refer [map-val]]
             [inflow-popup.comp.dialog :refer [comp-dialog]]
             [app.comp.kit :refer [comp-title]]
-            [respo-ui.comp.icon :refer [comp-icon]]))
+            [feather.core :refer [comp-i]]))
 
 (defcomp
  comp-dashboard
@@ -36,9 +36,8 @@
      {:style ui/row-parted}
      (span {})
      (a
-      {:style (merge ui/link {:font-size 16}),
-       :on-click (action-> :router/change {:name :emotions})}
-      (comp-icon :android-settings)))
+      {:style (merge ui/link), :on-click (action-> :router/change {:name :emotions})}
+      (comp-i :settings 16 (hsl 200 80 80))))
     (=< nil 16)
     (div
      {}
