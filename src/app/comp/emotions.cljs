@@ -6,7 +6,7 @@
             [respo.core :refer [defcomp <> action-> list-> span div button a]]
             [app.config :as config]
             [respo.util.list :refer [map-val]]
-            [respo-ui.comp.icon :refer [comp-icon]])
+            [feather.core :refer [comp-i]])
   (:require-macros [clojure.core.strint :refer [<<]]))
 
 (defcomp
@@ -36,7 +36,7 @@
    (a
     {:on-click (action-> :router/change {:name :edit-emotion, :data nil}),
      :style {:font-size 16}}
-    (comp-icon :ios-plus-outline)))
+    (comp-i :plus 16 (hsl 200 80 80))))
   (=< nil 16)
   (div
    {}

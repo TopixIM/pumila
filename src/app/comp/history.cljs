@@ -10,7 +10,7 @@
             [app.comp.emotions :refer [comp-emotion]]
             ["dayjs" :as dayjs]
             [app.comp.kit :refer [comp-hint]]
-            [respo-ui.comp.icon :refer [comp-icon]]
+            [feather.core :refer [comp-icon comp-i]]
             [respo-alerts.comp.alerts :refer [comp-confirm]])
   (:require-macros [clojure.core.strint :refer [<<]]))
 
@@ -32,8 +32,7 @@
     :confirm
     comp-confirm
     states
-    {:trigger (span {:style {:color (hsl 0 0 80)}} (comp-icon :close)),
-     :text "Sure to delete?"}
+    {:trigger (comp-i :x 14 (hsl 0 0 80)), :text "Sure to delete?"}
     (fn [e d! m!] (d! :mood/remove-one (:id mood)))))
   (div {:inner-text (:text mood), :style (merge ui/flex {:word-break :break-all})})))
 
