@@ -9,9 +9,9 @@
             [app.config :as config]
             [app.comp.emotions :refer [comp-emotion]]
             [respo.util.list :refer [map-val]]
-            [inflow-popup.comp.dialog :refer [comp-dialog]]
             [app.comp.kit :refer [comp-title]]
-            [feather.core :refer [comp-i]]))
+            [feather.core :refer [comp-i]]
+            [respo-alerts.core :refer [comp-modal]]))
 
 (defcomp
  comp-dashboard
@@ -44,11 +44,13 @@
      (a
       {:style ui/link, :on-click (action-> :router/change {:name :history})}
       (<> "View history")))
-    (when (:show-editor? state)
-      (comp-dialog
-       (fn [mutate!] (mutate! %cursor (assoc state :show-editor? false)))
+    (comp-modal
+     (:show-editor? state)
+     {:style {:width 400}}
+     (fn [mutate!] (mutate! %cursor (assoc state :show-editor? false)))
+     (fn []
        (div
-        {:style {:min-width 240}}
+        {:style {:min-width 240, :padding 20}}
         (div
          {:style ui/row-middle}
          (<> "In mood")
