@@ -5,7 +5,7 @@
             [respo.comp.space :refer [=<]]
             [respo.core
              :refer
-             [defcomp <> action-> list-> span div input a button textarea]]
+             [defcomp <> action-> list-> span div input a button textarea pre]]
             [app.config :as config]
             [app.comp.emotions :refer [comp-emotion]]
             [respo.util.list :refer [map-val]]
@@ -15,8 +15,10 @@
 
 (defcomp
  comp-dashboard
- (states emotions)
- (let [state (or (:data states) {:show-editor? false, :emotion-id nil, :draft ""})]
+ (states router-data)
+ (let [state (or (:data states) {:show-editor? false, :emotion-id nil, :draft ""})
+       emotions (:emotions router-data)
+       moods (:moods router-data)]
    (div
     {:style {:padding "8px 16px"}}
     (comp-title "What do you feel now?")
@@ -29,6 +31,7 @@
            (fn [emotion]
              (comp-emotion
               emotion
+              nil
               (fn [e d! m!]
                 (m! (merge state {:show-editor? true, :emotion-id (:id emotion)}))))))))
     (=< nil 0)
@@ -44,9 +47,29 @@
      (a
       {:style ui/link, :on-click (action-> :router/change {:name :history})}
       (<> "View history")))
+    (div
+     {}
+     (list->
+      {}
+      (->> moods
+           (sort-by (fn [[k mood]] (unchecked-negate (:time mood))))
+           (map
+            (fn [[k mood]]
+              [k
+               (let [emotion-id (:emotion-id mood)]
+                 (div
+                  {:style ui/row}
+                  (comp-emotion (get emotions emotion-id) nil (fn [e d! m!] ))
+                  (div
+                   {:style (merge
+                            ui/expand
+                            {:white-space :nowrap,
+                             :text-overflow :ellipsis,
+                             :overflow :hidden})}
+                   (<> (:text mood)))))])))))
     (comp-modal
      (:show-editor? state)
-     {:style {:width 400}}
+     {:style {:width 400, :max-width "86%"}}
      (fn [mutate!] (mutate! %cursor (assoc state :show-editor? false)))
      (fn []
        (div
@@ -55,11 +78,11 @@
          {:style ui/row-middle}
          (<> "In mood")
          (=< 8 nil)
-         (comp-emotion (get emotions (:emotion-id state)) (fn [] )))
+         (comp-emotion (get emotions (:emotion-id state)) nil (fn [] )))
         (div
          {}
          (textarea
-          {:style (merge ui/textarea {:width "100%"}),
+          {:style (merge ui/textarea {:width "100%", :min-height 160}),
            :value (:draft state),
            :placeholder "Some notes...",
            :on-input (fn [e d! m!] (m! (assoc state :draft (:value e))))}))

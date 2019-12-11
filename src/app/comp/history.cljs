@@ -26,7 +26,7 @@
    {:style ui/row-parted}
    (div
     {:style ui/row-middle}
-    (comp-emotion (get emotions (:emotion-id mood)) nil)
+    (comp-emotion (get emotions (:emotion-id mood)) nil nil)
     (comp-hint (-> (dayjs (:time mood)) (.format "MM-DD HH:mm"))))
    (cursor->
     :confirm

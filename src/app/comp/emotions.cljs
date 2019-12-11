@@ -11,16 +11,19 @@
 
 (defcomp
  comp-emotion
- (emotion on-click!)
+ (emotion style on-click!)
  (div
-  {:style {:background-color (:color emotion),
-           :display :inline-block,
-           :padding "0 16px",
-           :line-height "24px",
-           :height "24px",
-           :margin "0 8px 8px 0",
-           :border-radius "8px",
-           :color :white},
+  {:style (merge
+           ui/center
+           {:background-color (:color emotion),
+            :display :inline-flex,
+            :padding "0 16px",
+            :line-height "24px",
+            :height "24px",
+            :margin "0 8px 8px 0",
+            :border-radius "8px",
+            :color :white}
+           style),
    :on-click on-click!}
   (<> (:text emotion))))
 
@@ -47,5 +50,6 @@
           (fn [emotion]
             (comp-emotion
              emotion
+             nil
              (fn [e d! m!] (d! :router/change {:name :edit-emotion, :data (:id emotion)}))))))))
   (=< nil 32)))

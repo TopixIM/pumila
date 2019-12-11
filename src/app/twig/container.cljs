@@ -26,7 +26,12 @@
                   router
                   :data
                   (case (:name router)
-                    :home (:emotions user)
+                    :home
+                      {:emotions (:emotions user),
+                       :moods (->> (:moods user)
+                                   (sort-by (fn [[k mood]] (unchecked-negate (:time mood))))
+                                   (take 8)
+                                   (into {}))}
                     :history {:emotions (:emotions user), :moods (:moods user)}
                     :emotions (:emotions user)
                     :edit-emotion
