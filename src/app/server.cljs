@@ -6,14 +6,14 @@
             [cumulo-reel.core :refer [reel-reducer refresh-reel reel-schema]]
             ["fs" :as fs]
             ["path" :as path]
-            ["chalk" :as chalk]
             [app.config :as config]
             [cumulo-util.file :refer [write-mildly! get-backup-path! merge-local-edn!]]
             [cumulo-util.core :refer [id! repeat! unix-time! delay!]]
             [app.twig.container :refer [twig-container]]
             [recollect.diff :refer [diff-twig]]
-            [recollect.twig :refer [render-twig]]
-            [ws-edn.server :refer [wss-serve! wss-send! wss-each!]])
+            [ws-edn.server :refer [wss-serve! wss-send! wss-each!]]
+            [favored-edn.core :refer [write-edn]]
+            [recollect.twig :refer [new-twig-loop! clear-twig-caches!]])
   (:require-macros [clojure.core.strint :refer [<<]]))
 
 (defonce *client-caches (atom {}))
@@ -31,7 +31,7 @@
 (defonce *reader-reel (atom @*reel))
 
 (defn persist-db! []
-  (let [file-content (pr-str (assoc (:db @*reel) :sessions {}))
+  (let [file-content (write-edn (assoc (:db @*reel) :sessions {}))
         storage-path storage-file
         backup-path (get-backup-path!)]
     (write-mildly! storage-path file-content)
@@ -58,15 +58,14 @@
            records (:records reel)
            session (get-in db [:sessions sid])
            old-store (or (get @*client-caches sid) nil)
-           new-store (render-twig (twig-container db session records) old-store)
+           new-store (twig-container db session records)
            changes (diff-twig old-store new-store {:key :id})]
-       (println
-        (let [changes-text (subs (pr-str changes) 0 100)]
-          (.gray chalk (<< "Changes for ~{sid}: ~{changes-text}"))))
+       (when config/dev? (println "Changes for" sid ":" changes (count records)))
        (if (not= changes [])
          (do
           (wss-send! sid {:kind :patch, :data changes})
-          (swap! *client-caches assoc sid new-store)))))))
+          (swap! *client-caches assoc sid new-store))))))
+  (new-twig-loop!))
 
 (defn render-loop! []
   (when (not (identical? @*reader-reel @*reel))
@@ -74,9 +73,9 @@
     (sync-clients! @*reader-reel))
   (delay! 0.2 render-loop!))
 
-(defn run-server! []
+(defn run-server! [port]
   (wss-serve!
-   (:port config/site)
+   port
    {:on-open (fn [sid socket]
       (dispatch! :session/connect nil sid)
       (js/console.info "New client.")),
@@ -91,13 +90,19 @@
 
 (defn main! []
   (println "Running mode:" (if config/dev? "dev" "release"))
-  (run-server!)
+  (let [port (if (some? js/process.env.port)
+               (js/parseInt js/process.env.port)
+               (:port config/site))]
+    (run-server! port)
+    (println (<< "Server started on port ~{port}.")))
   (render-loop!)
   (js/process.on "SIGINT" on-exit!)
-  (repeat! 600 #(persist-db!))
-  (println "Server started."))
+  (repeat! 600 #(persist-db!)))
 
-(defn reload! []
+(defn ^:dev/after-load
+  reload!
+  []
   (println "Code updated.")
+  (clear-twig-caches!)
   (reset! *reel (refresh-reel @*reel initial-db updater))
   (sync-clients! @*reader-reel))
