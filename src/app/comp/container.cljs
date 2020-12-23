@@ -2,7 +2,7 @@
 (ns app.comp.container
   (:require [hsl.core :refer [hsl]]
             [respo-ui.core :as ui]
-            [respo.core :refer [defcomp <> div span action-> cursor-> button]]
+            [respo.core :refer [defcomp <> >> div span button]]
             [respo.comp.inspect :refer [comp-inspect]]
             [respo.comp.space :refer [=<]]
             [app.comp.navigation :refer [comp-navigation]]
@@ -31,7 +31,7 @@
             :background-size :contain}})
   (div
    {:style {:cursor :pointer, :line-height "32px"},
-    :on-click (action-> :effect/connect nil)}
+    :on-click (fn [e d!] (d! :effect/connect nil))}
    (<> "No connection..." {:font-family ui/font-fancy, :font-size 24}))))
 
 (defcomp
@@ -63,16 +63,11 @@
       (comp-navigation (:logged-in? store) (:count store))
       (if (:logged-in? store)
         (case (:name router)
-          :home (cursor-> :dashboard comp-dashboard states router-data)
+          :home (comp-dashboard (>> states :dashboard) router-data)
           :emotions (comp-emotions-manager router-data)
-          :edit-emotion (cursor-> :form comp-emotion-form states router-data)
+          :edit-emotion (comp-emotion-form (>> states :form) router-data)
           :history
-            (cursor->
-             :history
-             comp-history
-             states
-             (:moods router-data)
-             (:emotions router-data))
+            (comp-history (>> states :history) (:moods router-data) (:emotions router-data))
           :profile (comp-profile (:user store) router-data)
           (<> router))
         (comp-login states))

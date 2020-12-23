@@ -3,12 +3,10 @@
   (:require [hsl.core :refer [hsl]]
             [respo-ui.core :as ui]
             [respo.comp.space :refer [=<]]
-            [respo.core
-             :refer
-             [defcomp <> action-> list-> mutation-> cursor-> span div button input]]
+            [respo.core :refer [defcomp <> >> list-> span div button input]]
             [app.config :as config]
             [app.schema :as schema]
-            [respo-alerts.comp.alerts :refer [comp-confirm]]
+            [respo-alerts.core :refer [comp-confirm]]
             [app.comp.kit :refer [comp-field comp-title]]))
 
 (def default-colors
@@ -37,7 +35,9 @@
 (defcomp
  comp-emotion-form
  (states data)
- (let [form (or (:data states) (or data schema/emotion)), editing? (some? (:id form))]
+ (let [cursor (:cursor states)
+       form (or (:data states) (or data schema/emotion))
+       editing? (some? (:id form))]
    (div
     {:style {:padding "8px 16px"}}
     (div {} (comp-title "Emotion details"))
@@ -47,14 +47,14 @@
      (input
       {:style ui/input,
        :value (:text form),
-       :on-input (mutation-> (assoc form :text (:value %e)))}))
+       :on-input (fn [e d!] (d! cursor (assoc form :text (:value e))))}))
     (comp-field
      "Score"
      (input
       {:style ui/input,
        :value (:score form),
        :type "number",
-       :on-input (mutation-> (assoc form :score (:value %e)))}))
+       :on-input (fn [e d!] (d! cursor (assoc form :score (:value e))))}))
     (comp-field
      "Color"
      (div
@@ -62,9 +62,9 @@
       (input
        {:style (merge ui/input {:font-family ui/font-code}),
         :value (:color form),
-        :on-input (mutation-> (assoc form :color (:value %e)))})
+        :on-input (fn [e d!] (d! cursor (assoc form :color (:value e))))})
       (=< nil 8)
-      (comp-color-picker form (fn [color d! m!] (m! %cursor (assoc form :color color))))))
+      (comp-color-picker form (fn [color d!] (d! cursor (assoc form :color color))))))
     (=< nil 16)
     (div
      {:style ui/row-parted}
@@ -72,10 +72,8 @@
      (span
       {}
       (when editing?
-        (cursor->
-         :confirm
-         comp-confirm
-         states
+        (comp-confirm
+         (>> states :confirm)
          {:trigger (button
                     {:style (merge
                              ui/button
@@ -84,14 +82,14 @@
                               :border (hsl 10 50 60)}),
                      :inner-text "Delete"}),
           :text "Sure to delete?"}
-         (fn [e d! m!]
+         (fn [e d!]
            (d! :router/change {:name :emotions})
            (d! :emotion/remove-one (:id form)))))
       (when editing? (=< 8 nil))
       (button
        {:style ui/button,
-        :on-click (fn [e d! m!]
+        :on-click (fn [e d!]
           (d! :emotion/create-one form)
-          (m! nil)
+          (d! cursor nil)
           (d! :router/change {:name :emotions})),
         :inner-text (if editing? "Save" "Create")}))))))
