@@ -11434,34 +11434,6 @@
               |j $ {} (:text |site) (:type :leaf) (:at 1500541255553) (:by |root)
               |r $ {}
                 :data $ {}
-                  |x5 $ {}
-                    :data $ {}
-                      |T $ {} (:text |:cdn-url) (:type :leaf) (:at 1528009886059) (:by |root)
-                      |j $ {} (:text "|\"http://cdn.tiye.me/pumila/") (:type :leaf) (:at 1537035667829) (:by |root)
-                    :type :expr
-                    :at 1528009883995
-                    :by |root
-                  |xD $ {}
-                    :data $ {}
-                      |T $ {} (:text |:cdn-folder) (:type :leaf) (:at 1528009882805) (:by |root)
-                      |j $ {} (:text "|\"tiye.me:cdn/pumila") (:type :leaf) (:at 1537035671541) (:by |root)
-                    :type :expr
-                    :at 1528009877862
-                    :by |root
-                  |yT $ {}
-                    :data $ {}
-                      |T $ {} (:text |:upload-folder) (:type :leaf) (:at 1528009970172) (:by |root)
-                      |j $ {} (:text "|\"tiye.me:repo/TopixIM/pumila/") (:type :leaf) (:at 1536468242840) (:by |root)
-                    :type :expr
-                    :at 1527866712917
-                    :by |root
-                  |yj $ {}
-                    :data $ {}
-                      |T $ {} (:text |:server-folder) (:type :leaf) (:at 1528010247576) (:by |root)
-                      |j $ {} (:text "|\"tiye.me:servers/pumila") (:type :leaf) (:at 1536468253350) (:by |root)
-                    :type :expr
-                    :at 1527866893140
-                    :by |root
                   |yn $ {}
                     :data $ {}
                       |T $ {} (:text |:storage-key) (:type :leaf) (:at 1547659907549) (:by |B1y7Rc-Zz)
@@ -11472,7 +11444,7 @@
                   |yp $ {}
                     :data $ {}
                       |T $ {} (:text |:storage-file) (:type :leaf) (:at 1547659912205) (:by |B1y7Rc-Zz)
-                      |j $ {} (:text "|\"storage.edn") (:type :leaf) (:at 1547659912205) (:by |B1y7Rc-Zz)
+                      |j $ {} (:text "|\"storage.cirru") (:type :leaf) (:at 1637313679627) (:by |B1y7Rc-Zz)
                     :type :expr
                     :at 1547659912205
                     :by |B1y7Rc-Zz
@@ -11504,20 +11476,6 @@
                       |j $ {} (:text "|\"http://cdn.tiye.me/logo/pumila.png") (:type :leaf) (:at 1536506945817) (:by |root)
                     :type :expr
                     :at 1527867511986
-                    :by |root
-                  |v $ {}
-                    :data $ {}
-                      |T $ {} (:text |:dev-ui) (:type :leaf) (:at 1527615280984) (:by |root)
-                      |j $ {} (:text "|\"http://localhost:8100/main-fonts.css") (:type :leaf) (:at 1557335448542) (:by |B1y7Rc-Zz)
-                    :type :expr
-                    :at 1527615278481
-                    :by |root
-                  |x $ {}
-                    :data $ {}
-                      |T $ {} (:text |:release-ui) (:type :leaf) (:at 1527615283846) (:by |root)
-                      |j $ {} (:text "|\"http://cdn.tiye.me/favored-fonts/main-fonts.css") (:type :leaf) (:at 1557335453444) (:by |B1y7Rc-Zz)
-                    :type :expr
-                    :at 1527615281625
                     :by |root
                 :type :expr
                 :at 1500541255553

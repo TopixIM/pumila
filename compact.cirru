@@ -983,4 +983,4 @@
         |dev? $ quote
           def dev? $ = "\"dev" (get-env "\"mode")
         |site $ quote
-          def site $ {} (:port 11011) (:title "\"Pumila") (:icon "\"http://cdn.tiye.me/logo/pumila.png") (:dev-ui "\"http://localhost:8100/main-fonts.css") (:release-ui "\"http://cdn.tiye.me/favored-fonts/main-fonts.css") (:cdn-url "\"http://cdn.tiye.me/pumila/") (:cdn-folder "\"tiye.me:cdn/pumila") (:upload-folder "\"tiye.me:repo/TopixIM/pumila/") (:server-folder "\"tiye.me:servers/pumila") (:storage-key "\"pumila") (:storage-file "\"storage.edn") (:theme "\"#6EBAEE")
+          def site $ {} (:port 11011) (:title "\"Pumila") (:icon "\"http://cdn.tiye.me/logo/pumila.png") (:storage-key "\"pumila") (:storage-file "\"storage.cirru") (:theme "\"#6EBAEE")
