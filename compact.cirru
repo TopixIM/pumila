@@ -21,7 +21,8 @@
                 url-obj $ url-parse js/location.href true
                 host $ either (-> url-obj .-query .-host) js/location.hostname
                 port $ either (-> url-obj .-query .-port) (:port config/site)
-              ws-connect! (str "\"ws://" host "\":" port)
+              ws-connect!
+                str (if config/dev? "\"ws://" "\"wss://") host "\":" port
                 {}
                   :on-open $ fn (event) (simulate-login!)
                   :on-close $ fn (event) (reset! *store nil) (js/console.error "\"Lost connection!")
