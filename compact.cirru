@@ -22,7 +22,7 @@
                 host $ either (-> url-obj .-query .-host) js/location.hostname
                 port $ either (-> url-obj .-query .-port) (:port config/site)
               ws-connect!
-                str (if config/dev? "\"ws://" "\"wss://") host "\":" port
+                if config/dev? (str "\"ws://" host "\":" port) (str "\"wss://" host "\"/ws")
                 {}
                   :on-open $ fn (event) (simulate-login!)
                   :on-close $ fn (event) (reset! *store nil) (js/console.error "\"Lost connection!")
