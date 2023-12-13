@@ -4492,7 +4492,7 @@
                   |u $ %{} :Expr (:at 1527867511986) (:by |root)
                     :data $ {}
                       |T $ %{} :Leaf (:at 1527867512819) (:by |root) (:text |:icon)
-                      |j $ %{} :Leaf (:at 1536506945817) (:by |root) (:text "|\"http://cdn.tiye.me/logo/pumila.png")
+                      |j $ %{} :Leaf (:at 1536506945817) (:by |root) (:text "|\"http://cdn-tc.tiye.me/logo/pumila.png")
                   |yn $ %{} :Expr (:at 1547659907549) (:by |B1y7Rc-Zz)
                     :data $ {}
                       |T $ %{} :Leaf (:at 1547659907549) (:by |B1y7Rc-Zz) (:text |:storage-key)

@@ -678,7 +678,7 @@
             def dev? $ = "\"dev" (get-env "\"mode" "\"release")
         |site $ %{} :CodeEntry (:doc |)
           :code $ quote
-            def site $ {} (:port 11011) (:title "\"Pumila") (:icon "\"http://cdn.tiye.me/logo/pumila.png") (:storage-key "\"pumila") (:storage-file "\"storage.cirru") (:theme "\"#6EBAEE")
+            def site $ {} (:port 11011) (:title "\"Pumila") (:icon "\"http://cdn-tc.tiye.me/logo/pumila.png") (:storage-key "\"pumila") (:storage-file "\"storage.cirru") (:theme "\"#6EBAEE")
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote (ns app.config)
     |app.schema $ %{} :FileEntry
