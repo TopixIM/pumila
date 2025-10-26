@@ -1,6 +1,6 @@
 
 {} (:package |app)
-  :configs $ {} (:init-fn |app.client/main!) (:port 6001) (:reload-fn |app.client/reload!) (:storage-key |calcit.cirru)
+  :configs $ {} (:init-fn |app.client/main!) (:port 6001) (:reload-fn |app.client/reload!) (:storage-key |calcit.cirru) (:version |0.0.1)
     :modules $ [] |respo.calcit/ |lilac/ |recollect/ |memof/ |respo-ui.calcit/ |ws-edn.calcit/ |cumulo-util.calcit/ |respo-message.calcit/ |cumulo-reel.calcit/ |respo-feather.calcit/ |alerts.calcit/
   :entries $ {}
     :server $ {} (:init-fn |app.server/main!) (:port 6001) (:reload-fn |app.server/reload!) (:storage-key |calcit.cirru)
@@ -222,6 +222,13 @@
                       |j $ %{} :Leaf (:at 1629572138414) (:by |B1y7Rc-Zz) (:text |config/dev?)
                       |r $ %{} :Leaf (:at 1629572138414) (:by |B1y7Rc-Zz) (:text "|\"dev")
                       |v $ %{} :Leaf (:at 1629572138414) (:by |B1y7Rc-Zz) (:text "|\"release")
+              |w $ %{} :Expr (:at 1761480755450) (:by |B1y7Rc-Zz)
+                :data $ {}
+                  |T $ %{} :Leaf (:at 1761480755816) (:by |B1y7Rc-Zz) (:text |if)
+                  |b $ %{} :Leaf (:at 1761480756223) (:by |B1y7Rc-Zz) (:text |config/dev?)
+                  |h $ %{} :Expr (:at 1761480756918) (:by |B1y7Rc-Zz)
+                    :data $ {}
+                      |T $ %{} :Leaf (:at 1761480784678) (:by |B1y7Rc-Zz) (:text |load-console-formatter!)
               |x $ %{} :Expr (:at 1629572138414) (:by |B1y7Rc-Zz)
                 :data $ {}
                   |T $ %{} :Leaf (:at 1629572138414) (:by |B1y7Rc-Zz) (:text |render-app!)
