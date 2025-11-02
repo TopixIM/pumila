@@ -17,23 +17,13 @@ jobs:
         node-version: 20
         cache: 'yarn'
 
-    - uses: supplypike/setup-bin@v3
-      with:
-        uri: 'https://github.com/calcit-lang/calcit/releases/download/0.8.14/cr'
-        name: 'cr'
-        version: '0.8.14'
+    - uses: calcit-lang/setup-cr@0.0.8
 
-    - uses: supplypike/setup-bin@v3
-      with:
-        uri: 'https://github.com/calcit-lang/calcit/releases/download/0.8.14/caps'
-        name: 'caps'
-        version: '0.8.14'
-
-    - run: caps --ci &&  cr --entry server --emit-ir -1
+    - run: caps --ci &&  cr --entry server -1 ir
 
     - run: yarn && yarn compile-page && yarn release-page
 
-    - run: mkdir -p dist-server && cp -v compact.cirru package.cirru package.json dist-server/
+    - run: mkdir -p dist-server && cp -v compact.cirru deps.cirru package.json dist-server/
       name: Copy server scripts
 
     - name: Upload web assets

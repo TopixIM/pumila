@@ -4,9 +4,9 @@
   "description": "Cumulo Workflow",
   "main": "index.js",
   "scripts": {
-    "compile-page": "cr --emit-js --once",
+    "compile-page": "cr --once js",
     "release-page": "vite build --base=./",
-    "watch-page": "cr --emit-js/"
+    "watch-page": "cr js"
   },
   "repository": {
     "type": "git",
