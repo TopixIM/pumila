@@ -51,7 +51,7 @@
                 js/console.log |Dispatch op
               tag-match op
                 (:states cursor state)
-                  reset! *states $ update-states @*states cursor state
+                  reset! *states $ update-states (deref *states) cursor state
                 (:effect/connect) (connect!)
                 _ $ ws-send! op
           :examples $ []
@@ -99,7 +99,7 @@
         'render-app! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn render-app! () $ render! mount-target
-              comp-container (:states @*states) @*store
+              comp-container (app.schema/read-field @*states :states) @*store
               , dispatch!
           :examples $ []
           :schema $ :: 'Dynamic
@@ -141,28 +141,32 @@
           :code $ quote
             defcomp comp-container (states store)
               let
-                  state $ :data states
-                  session $ :session store
-                  router $ :router store
-                  router-data $ :data router
+                  state $ app.schema/read-field states :data
+                  session $ app.schema/read-field store :session
+                  router $ app.schema/read-field store :router
+                  router-data $ app.schema/read-field router :data
                 if (nil? store) (comp-offline)
                   div
                     {} $ :style (merge ui/global ui/fullscreen ui/column)
-                    comp-navigation (:logged-in? store) (:count store)
-                    if (:logged-in? store)
-                      case (:name router)
+                    comp-navigation (app.schema/read-field store :logged-in?) (app.schema/read-field store :count)
+                    if (app.schema/read-field store :logged-in?)
+                      case (app.schema/read-field router :name)
                         :home $ comp-dashboard (>> states :dashboard) router-data
                         :emotions $ comp-emotions-manager router-data
                         :edit-emotion $ comp-emotion-form (>> states :form) router-data
-                        :history $ comp-history (>> states :history) (:moods router-data) (:emotions router-data)
-                        :profile $ comp-profile (:user store) router-data
+                        :history $ comp-history (>> states :history) (app.schema/read-field router-data :moods) (app.schema/read-field router-data :emotions)
+                        :profile $ comp-profile (app.schema/read-field store :user) router-data
                         <> router
                       comp-login states
                     ; comp-status-color $ :color store
                     when dev? $ comp-inspect |Store store
                       {} (:bottom 20) (:left 0) (:max-width |100%)
                     comp-messages
-                      get-in store $ [] :session :messages
+                      unsafe-coerce
+                        ->
+                          get-in store $ [] :session :messages
+                          .unwrap-or $ {}
+                        :: 'Map 'String 'Dynamic
                       {}
                       fn (info d!) (d! :session/remove-message info)
                     ; when dev? $ comp-reel (:reel-length store)
@@ -173,7 +177,13 @@
           :code $ quote
             defcomp comp-offline () $ div
               {} $ :style
-                merge ui/global ui/fullscreen ui/column-dispersive $ {} (:background-color :white)
+                merge
+                  unsafe-coerce ui/global $ :: 'Map 'Tag 'Dynamic
+                  unsafe-coerce ui/fullscreen $ :: 'Map 'Tag 'Dynamic
+                  unsafe-coerce ui/column-dispersive $ :: 'Map 'Tag 'Dynamic
+                  unsafe-coerce
+                    {} $ :background-color :white
+                    :: 'Map 'Tag 'Dynamic
               div $ {}
                 :style $ {} (:height 0)
               div $ {}
@@ -224,11 +234,11 @@
           :code $ quote
             defcomp comp-dashboard (states router-data)
               let
-                  cursor $ :cursor states
-                  state $ or (:data states)
+                  cursor $ app.schema/read-field states :cursor
+                  state $ or (app.schema/read-field states :data)
                     {} (:show-editor? false) (:emotion-id nil) (:draft |)
-                  emotions $ or (:emotions router-data) ({})
-                  moods $ or (:moods router-data) ({})
+                  emotions $ or (app.schema/read-field router-data :emotions) ({})
+                  moods $ or (app.schema/read-field router-data :moods) ({})
                 div
                   {} $ :style
                     {} $ :padding "|8px 16px"
@@ -236,13 +246,15 @@
                   =< nil 16
                   list-> emotions $ -> emotions (.to-list)
                     .sort-by $ fn (pair)
-                      negate $ :score (last pair)
+                      negate $ assert-type
+                        app.schema/read-field (last pair) :score
+                        , 'Number
                     .map-pair $ fn (k emotion)
                       [] k $ comp-emotion emotion nil
                         fn (e d!)
                           d! cursor $ merge state
                             {} (:show-editor? true)
-                              :emotion-id $ :id emotion
+                              :emotion-id $ app.schema/read-field emotion :id
                   =< nil 0
                   div
                     {} $ :style ui/row-parted
@@ -264,17 +276,19 @@
                     list-> ({})
                       -> moods (.to-list)
                         .sort-by $ fn (pair)
-                          negate $ :time (last pair)
+                          negate $ assert-type
+                            app.schema/read-field (last pair) :time
+                            , 'Number
                         .map-pair $ fn (k mood)
                           [] k $ let
-                              emotion-id $ :emotion-id mood
+                              emotion-id $ app.schema/read-field mood :emotion-id
                             div
                               {} $ :style ui/row
                               comp-emotion (get emotions emotion-id) nil $ fn (e d!)
                               div
                                 {} $ :style
                                   merge ui/expand $ {} (:white-space :nowrap) (:text-overflow :ellipsis) (:overflow :hidden)
-                                <> $ :text mood
+                                <> $ app.schema/read-field mood :text
                   comp-modal
                     {}
                       :style $ {} (:width 400) (:max-width |86%)
@@ -287,16 +301,16 @@
                             <> "|In mood"
                             =< 8 nil
                             comp-emotion
-                              get emotions $ :emotion-id state
+                              get emotions $ app.schema/read-field state :emotion-id
                               , nil $ fn ()
                           div ({})
                             textarea $ {}
                               :style $ merge ui/textarea
                                 {} (:width |100%) (:min-height 160)
-                              :value $ :draft state
+                              :value $ app.schema/read-field state :draft
                               :placeholder "|Some notes..."
                               :on-input $ fn (e d!)
-                                d! cursor $ assoc state :draft (:value e)
+                                d! cursor $ assoc state :draft (app.schema/read-field e :value)
                           =< nil 8
                           div
                             {} $ :style ui/row-parted
@@ -304,10 +318,10 @@
                             button $ {} (:style ui/button) (:inner-text |Submit)
                               :on-click $ fn (e d!)
                                 d! :mood/create-one $ {}
-                                  :text $ :draft state
-                                  :emotion-id $ :emotion-id state
-                                d! cursor $ assoc state :show-editor? false :draft |
-                    :show-editor? state
+                                  :text $ app.schema/read-field state :draft
+                                  :emotion-id $ app.schema/read-field state :emotion-id
+                                d! cursor $ -> state (assoc :show-editor? false) (assoc :draft |)
+                    app.schema/read-field state :show-editor?
                     fn (d!)
                       d! cursor $ assoc state :show-editor? false
           :examples $ []
@@ -344,9 +358,9 @@
           :code $ quote
             defcomp comp-emotion-form (states data)
               let
-                  cursor $ :cursor states
-                  form $ or (:data states) (or data schema/emotion)
-                  editing? $ some? (:id form)
+                  cursor $ app.schema/read-field states :cursor
+                  form $ or (app.schema/read-field states :data) (or data schema/emotion)
+                  editing? $ some? (app.schema/read-field form :id)
                   delete-plugin $ use-confirm (>> states :delete)
                     {} $ :text "|Sure to delete?"
                 div
@@ -356,23 +370,23 @@
                   =< nil 16
                   comp-field |Name $ input
                     {} (:style ui/input)
-                      :value $ :text form
+                      :value $ app.schema/read-field form :text
                       :on-input $ fn (e d!)
-                        d! cursor $ assoc form :text (:value e)
+                        d! cursor $ assoc form :text (app.schema/read-field e :value)
                   comp-field |Score $ input
                     {} (:style ui/input)
-                      :value $ :score form
+                      :value $ app.schema/read-field form :score
                       :type |number
                       :on-input $ fn (e d!)
-                        d! cursor $ assoc form :score (:value e)
+                        d! cursor $ assoc form :score (app.schema/read-field e :value)
                   comp-field |Color $ div
                     {} $ :style ui/column
                     input $ {}
                       :style $ merge ui/input
                         {} $ :font-family ui/font-code
-                      :value $ :color form
+                      :value $ app.schema/read-field form :color
                       :on-input $ fn (e d!)
-                        d! cursor $ assoc form :color (:value e)
+                        d! cursor $ assoc form :color (app.schema/read-field e :value)
                     =< nil 8
                     comp-color-picker form $ fn (color d!)
                       d! cursor $ assoc form :color color
@@ -391,7 +405,7 @@
                           :on-click $ fn (e d!)
                             .show delete-plugin d! $ fn ()
                               d! :router/change $ {} (:name :emotions)
-                              d! :emotion/remove-one $ :id form
+                              d! :emotion/remove-one $ app.schema/read-field form :id
                       when editing? $ =< 8 nil
                       button $ {} (:style ui/button)
                         :on-click $ fn (e d!) (d! :emotion/create-one form) (d! cursor nil)
@@ -425,7 +439,7 @@
                 {}
                   :style $ merge ui/center
                     {}
-                      :background-color $ :color emotion
+                      :background-color $ app.schema/read-field emotion :color
                       :display :inline-flex
                       :padding "|0 16px"
                       :line-height |24px
@@ -435,7 +449,7 @@
                       :color :white
                     , style
                   :on-click on-click!
-                <> $ :text emotion
+                <> $ app.schema/read-field emotion :text
           :examples $ []
           :schema $ :: 'Dynamic
         'comp-emotions-manager $ %{} 'CodeEntry (:doc |)
@@ -462,7 +476,7 @@
                         [] k $ comp-emotion emotion nil
                           fn (e d!)
                             d! :router/change $ {} (:name :edit-emotion)
-                              :data $ :id emotion
+                              :data $ app.schema/read-field emotion :id
                 =< nil 32
           :examples $ []
           :schema $ :: 'Dynamic
@@ -482,20 +496,31 @@
             defcomp comp-history (states moods emotions)
               div
                 {} $ :style
-                  merge ui/flex ui/column $ {} (:overflow :auto)
+                  merge
+                    unsafe-coerce ui/flex $ :: 'Map 'Tag 'Dynamic
+                    unsafe-coerce ui/column $ :: 'Map 'Tag 'Dynamic
+                    unsafe-coerce
+                      {} $ :overflow :auto
+                      :: 'Map 'Tag 'Dynamic
                 div
                   {} $ :style
                     {} (:margin "|8px 0") (:padding "|8px 16px")
                   comp-title |History
                 list->
                   {} $ :style
-                    merge ui/flex $ {} (:width |100%) (:padding "|8px 16px")
+                    merge
+                      unsafe-coerce ui/flex $ :: 'Map 'Tag 'Dynamic
+                      unsafe-coerce
+                        {} (:width |100%) (:padding "|8px 16px")
+                        :: 'Map 'Tag 'Dynamic
                   -> moods (.to-list)
                     .sort-by $ fn (pair)
-                      negate $ :time (last pair)
+                      negate $ assert-type
+                        app.schema/read-field (last pair) :time
+                        , 'Number
                     .map-pair $ fn (k mood)
                       [] k $ comp-record
-                        >> states $ :id mood
+                        >> states $ app.schema/read-field mood :id
                         , mood emotions
           :examples $ []
           :schema $ :: 'Dynamic
@@ -516,21 +541,24 @@
                     div
                       {} $ :style ui/row-middle
                       comp-emotion
-                        get emotions $ :emotion-id mood
+                        get emotions $ app.schema/read-field mood :emotion-id
                         , nil nil
                       comp-hint $ ->
-                        dayjs $ :time mood
+                        dayjs $ app.schema/read-field mood :time
                         .!format "|MM-DD HH:mm"
                     span
                       {} $ :on-click
                         fn (e d!)
                           .show remove-plugin d! $ fn ()
-                            d! :mood/remove-one $ :id mood
+                            d! :mood/remove-one $ app.schema/read-field mood :id
                       comp-i :x 14 $ hsl 0 0 80
                   div $ {}
-                    :inner-text $ :text mood
-                    :style $ merge ui/flex
-                      {} $ :word-break :break-all
+                    :inner-text $ app.schema/read-field mood :text
+                    :style $ merge
+                      unsafe-coerce ui/flex $ :: 'Map 'Tag 'Dynamic
+                      unsafe-coerce
+                        {} $ :word-break :break-all
+                        :: 'Map 'Tag 'Dynamic
           :examples $ []
           :schema $ :: 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
@@ -554,7 +582,11 @@
             defcomp comp-field (label child)
               div
                 {} $ :style
-                  merge ui/row $ {} (:margin-bottom 16)
+                  merge
+                    unsafe-coerce ui/row $ :: 'Map 'Tag 'Dynamic
+                    unsafe-coerce
+                      {} $ :margin-bottom 16
+                      :: 'Map 'Tag 'Dynamic
                 div
                   {} $ :style
                     {} $ :width 64
@@ -591,37 +623,40 @@
           :code $ quote
             defcomp comp-login (states)
               let
-                  cursor $ :cursor states
-                  state $ or (:data states) initial-state
+                  cursor $ app.schema/read-field states :cursor
+                  state $ or (app.schema/read-field states :data) initial-state
                 div
-                  {} $ :style (merge ui/flex ui/center)
+                  {} $ :style
+                    merge
+                      unsafe-coerce ui/flex $ :: 'Map 'Tag 'Dynamic
+                      unsafe-coerce ui/center $ :: 'Map 'Tag 'Dynamic
                   div ({})
                     div
                       {} $ :style ({})
                       div ({})
                         input $ {} (:placeholder |Username)
-                          :value $ :username state
+                          :value $ app.schema/read-field state :username
                           :style ui/input
                           :on-input $ fn (e d!)
-                            d! cursor $ assoc state :username (:value e)
+                            d! cursor $ assoc state :username (app.schema/read-field e :value)
                       =< nil 8
                       div ({})
                         input $ {} (:placeholder |Password)
-                          :value $ :password state
+                          :value $ app.schema/read-field state :password
                           :style ui/input
                           :on-input $ fn (e d!)
-                            d! cursor $ assoc state :password (:value e)
+                            d! cursor $ assoc state :password (app.schema/read-field e :value)
                     =< nil 8
                     div
                       {} $ :style
                         {} $ :text-align :right
                       span $ {} (:inner-text "|Sign up")
                         :style $ merge ui/link
-                        :on-click $ on-submit (:username state) (:password state) true
+                        :on-click $ on-submit (app.schema/read-field state :username) (app.schema/read-field state :password) true
                       =< 8 nil
                       span $ {} (:inner-text "|Log in")
                         :style $ merge ui/link
-                        :on-click $ on-submit (:username state) (:password state) false
+                        :on-click $ on-submit (app.schema/read-field state :username) (app.schema/read-field state :password) false
           :examples $ []
           :schema $ :: 'Dynamic
         'initial-state $ %{} 'CodeEntry (:doc |)
@@ -662,7 +697,9 @@
                     :on-click $ fn (e d!)
                       d! :router/change $ {} (:name :home)
                     :style $ {} (:cursor :pointer)
-                  <> (:title config/site) nil
+                  <>
+                    assert-type (app.schema/read-field config/site :title) 'String
+                    , nil
                 div
                   {}
                     :style $ {} (:cursor |pointer)
@@ -692,7 +729,7 @@
                 div
                   {} $ :style
                     {} (:font-family ui/font-fancy) (:font-size 32) (:font-weight 100)
-                  <> $ str "|Hello! " (:name user)
+                  <> $ str "|Hello! " (app.schema/read-field user :name)
                 =< nil 16
                 div
                   {} $ :style ui/row
@@ -785,6 +822,14 @@
             def notification $ {} (:id nil) (:kind nil) (:text nil)
           :examples $ []
           :schema $ :: 'Dynamic
+        'read-field $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn read-field (value field)
+              if (struct? value) (&struct:get value field) (&map:get value field)
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'Dynamic)
+              :args $ [] 'Dynamic 'Tag
         'router $ %{} 'CodeEntry (:doc |)
           :code $ quote
             def router $ {} (:name nil) (:title nil)
@@ -833,15 +878,14 @@
           :schema $ :: 'Dynamic
         '*reel $ %{} 'CodeEntry (:doc |)
           :code $ quote
-            defatom *reel $ merge reel-schema
-              {} (:base @*initial-db) (:db @*initial-db)
+            defatom *reel $ struct-with reel-schema (:base @*initial-db) (:db @*initial-db)
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Ref 'cumulo-reel.core/ReelState
         'dispatch! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn dispatch! (op sid)
               let
-                  op-id $ generate-id!
+                  op-id $ turn-string (generate-id!)
                   op-time $ -> (get-time!) (.timestamp)
                 if config/dev? $ println |Dispatch! (str op) sid
                 if (= op :effect/persist) (persist-db!)
@@ -853,8 +897,8 @@
             defn get-backup-path! () $ let
                 now $ .extract (get-time!)
               join-path calcit-dirname |backups
-                str $ :month now
-                str (:day now) |-snapshot.cirru
+                str $ app.schema/read-field now :month
+                str (app.schema/read-field now :day) |-snapshot.cirru
           :examples $ []
           :schema $ :: 'Dynamic
         'main! $ %{} 'CodeEntry (:doc |)
@@ -863,7 +907,10 @@
               println "|Running mode:" $ if config/dev? |dev |release
               let
                   p? $ get-env |port
-                  port $ if (some? p?) (parse-float p?) (:port config/site)
+                  port $ option:fold p?
+                    fn () $ app.schema/read-field config/site :port
+                    fn (raw)
+                      (parse-float raw) .unwrap-or $ app.schema/read-field config/site :port
                 run-server! port
                 println $ str "|Server started on port:" port
               do (; "|init it before doing multi-threading") (identity @*reader-reel)
@@ -881,7 +928,9 @@
           :code $ quote
             defn persist-db! () $ let
                 file-content $ format-cirru-edn
-                  assoc (:db @*reel) :sessions $ {}
+                  assoc
+                    :db $ unsafe-coerce @*reel 'cumulo-reel.core/ReelState
+                    , :sessions $ {}
                 storage-path storage-file
                 backup-path $ get-backup-path!
               check-write-file! storage-path file-content
@@ -935,10 +984,10 @@
             defn sync-clients! (reel)
               wss-each! $ fn (sid)
                 let
-                    db $ :db reel
-                    records $ :records reel
-                    session $ get-in db ([] :sessions sid)
-                    old-store $ or (get @*client-caches sid) nil
+                    db $ app.schema/read-field reel :db
+                    records $ app.schema/read-field reel :records
+                    session $ (get-in db ([] :sessions sid)) .unwrap-or schema/session
+                    old-store $ (get @*client-caches sid) .unwrap-or nil
                     new-store $ twig-container db session records
                     changes $ diff-twig old-store new-store
                       {} $ :key :id
@@ -985,35 +1034,36 @@
           :code $ quote
             defn twig-container (db session records)
               let
-                  logged-in? $ some? (:user-id session)
-                  router $ :router session
+                  logged-in? $ some? (app.schema/read-field session :user-id)
+                  router $ app.schema/read-field session :router
                   base-data $ {} (:logged-in? logged-in?) (:session session)
                     :reel-length $ count records
                 merge base-data $ if logged-in?
                   let
-                      user $ get-in db
-                        [] :users $ :user-id session
+                      user $ ->
+                        get-in db $ [] :users (app.schema/read-field session :user-id)
+                        .unwrap-or $ {}
                     {}
                       :user $ twig-user user
                       :router $ assoc router :data
-                        case-default (:name router) ({})
+                        case-default (app.schema/read-field router :name) ({})
                           :home $ {}
-                            :emotions $ :emotions user
-                            :moods $ -> (:moods user) (.to-list)
+                            :emotions $ app.schema/read-field user :emotions
+                            :moods $ -> (app.schema/read-field user :moods) (.to-list)
                               .sort-by $ fn (pair)
-                                negate $ :time (last pair)
+                                negate $ app.schema/read-field (last pair) :time
                               take 8
                               .pairs-map
                           :history $ {}
-                            :emotions $ :emotions user
-                            :moods $ :moods user
-                          :emotions $ :emotions user
+                            :emotions $ app.schema/read-field user :emotions
+                            :moods $ app.schema/read-field user :moods
+                          :emotions $ app.schema/read-field user :emotions
                           :edit-emotion $ if
-                            nil? $ :data router
+                            nil? $ app.schema/read-field router :data
                             , nil
-                              get-in user $ [] :emotions (:data router)
-                          :profile $ twig-members (:sessions db) (:users db)
-                      :count $ count (:sessions db)
+                              get-in user $ [] :emotions (app.schema/read-field router :data)
+                          :profile $ twig-members (app.schema/read-field db :sessions) (app.schema/read-field db :users)
+                      :count $ count (app.schema/read-field db :sessions)
                       :color $ rand-hex-color!
                   {}
           :examples $ []
@@ -1023,8 +1073,7 @@
             defn twig-members (sessions users)
               -> sessions $ map-kv
                 fn (k session)
-                  [] k $ get-in users
-                    [] (:user-id session) :name
+                  [] k $ (get-in users ([] (app.schema/read-field session :user-id) :name)) .unwrap-or nil
           :examples $ []
           :schema $ :: 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
@@ -1075,24 +1124,27 @@
           :code $ quote
             defn create-one (db op-data sid op-id op-time)
               let
-                  user-id $ get-in db ([] :sessions sid :user-id)
+                  user-id $ (get-in db ([] :sessions sid :user-id)) .unwrap-or nil
                 update-in db ([] :users user-id :emotions)
-                  fn (emotions)
-                    if
-                      some? $ :id op-data
-                      update emotions (:id op-data)
-                        fn (x) (merge x op-data)
-                      assoc emotions op-id $ merge schema/emotion op-data
-                        {} $ :id op-id
+                  fn (emotions-option)
+                    let
+                        emotions $ option:unwrap-or emotions-option ({})
+                      match (get op-data :id)
+                        (:some id)
+                          update emotions id $ fn (emotion-option)
+                            merge (option:unwrap-or emotion-option schema/emotion) op-data
+                        (:none)
+                          assoc emotions op-id $ merge schema/emotion op-data
+                            {} $ :id op-id
           :examples $ []
           :schema $ :: 'Dynamic
         'remove-one $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn remove-one (db op-data sid op-id op-time)
               let
-                  user-id $ get-in db ([] :sessions sid :user-id)
+                  user-id $ (get-in db ([] :sessions sid :user-id)) .unwrap-or nil
                 update-in db ([] :users user-id :emotions)
-                  fn (emotions) (dissoc emotions op-data)
+                  fn (emotions-option) (dissoc (option:unwrap-or emotions-option ({})) op-data)
           :examples $ []
           :schema $ :: 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
@@ -1104,7 +1156,7 @@
           :code $ quote
             defn create-one (db op-data sid op-id op-time)
               let
-                  user-id $ get-in db ([] :sessions sid :user-id)
+                  user-id $ (get-in db ([] :sessions sid :user-id)) .unwrap-or nil
                 assoc-in db ([] :users user-id :moods op-id)
                   merge schema/mood op-data $ {} (:id op-id) (:time op-time)
           :examples $ []
@@ -1113,9 +1165,9 @@
           :code $ quote
             defn remove-one (db op-data sid op-id op-time)
               let
-                  user-id $ get-in db ([] :sessions sid :user-id)
+                  user-id $ (get-in db ([] :sessions sid :user-id)) .unwrap-or nil
                 update-in db ([] :users user-id :moods)
-                  fn (moods) (dissoc moods op-data)
+                  fn (moods-option) (dissoc (option:unwrap-or moods-option ({})) op-data)
           :examples $ []
           :schema $ :: 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
@@ -1150,8 +1202,8 @@
           :code $ quote
             defn remove-message (db op-data sid op-id op-time)
               update-in db ([] :sessions sid :messages)
-                fn (messages)
-                  dissoc messages $ :id op-data
+                fn (messages-option)
+                  dissoc (option:unwrap-or messages-option ({})) $ app.schema/read-field op-data :id
           :examples $ []
           :schema $ :: 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
@@ -1165,21 +1217,25 @@
               let-sugar
                     [] username password
                     , op-data
-                  maybe-user $ -> (:users db) (vals) (.to-list)
+                  maybe-user $ -> (app.schema/read-field db :users) (vals) (.to-list)
                     find $ fn (user)
-                      and $ = username (:name user)
+                      and $ = username (app.schema/read-field user :name)
                 update-in db ([] :sessions sid)
-                  fn (session)
-                    if (some? maybe-user)
-                      if
-                        = (md5 password) (:password maybe-user)
-                        assoc session :user-id $ :id maybe-user
-                        update session :messages $ fn (messages)
-                          assoc messages op-id $ {} (:id op-id)
-                            :text $ str "|Wrong password for " username
-                      update session :messages $ fn (messages)
-                        assoc messages op-id $ {} (:id op-id)
-                          :text $ str "|No user named: " username
+                  fn (session-option)
+                    let
+                        session $ option:unwrap-or session-option schema/session
+                      match maybe-user
+                        (:some user)
+                          if
+                            = (md5 password) (app.schema/read-field user :password)
+                            assoc session :user-id $ app.schema/read-field user :id
+                            assoc session :messages $ assoc (app.schema/read-field session :messages) op-id
+                              {} (:id op-id)
+                                :text $ str "|Wrong password for " username
+                        (:none)
+                          assoc session :messages $ assoc (app.schema/read-field session :messages) op-id
+                            {} (:id op-id)
+                              :text $ str "|No user named: " username
           :examples $ []
           :schema $ :: 'Dynamic
         'log-out $ %{} 'CodeEntry (:doc |)
@@ -1203,20 +1259,22 @@
                     [] username password
                     , op-data
                   maybe-user $ find
-                    vals $ :users db
+                    -> (app.schema/read-field db :users) vals .to-list
                     fn (user)
-                      = username $ :name user
-                if (some? maybe-user)
-                  update-in db ([] :sessions sid :messages)
-                    fn (messages)
-                      assoc messages op-id $ {} (:id op-id)
-                        :text $ str "|Name is taken: " username
-                  -> db
-                    assoc-in ([] :sessions sid :user-id) op-id
-                    assoc-in ([] :users op-id)
-                      merge schema/user $ {} (:id op-id) (:name username) (:nickname username)
-                        :password $ md5 password
-                        :avatar nil
+                      = username $ app.schema/read-field user :name
+                match maybe-user
+                  (:some _user)
+                    update-in db ([] :sessions sid :messages)
+                      fn (messages-option)
+                        assoc (option:unwrap-or messages-option ({})) op-id $ {} (:id op-id)
+                          :text $ str "|Name is taken: " username
+                  (:none)
+                    -> db
+                      assoc-in ([] :sessions sid :user-id) op-id
+                      assoc-in ([] :users op-id)
+                        merge schema/user $ {} (:id op-id) (:name username) (:nickname username)
+                          :password $ md5 password
+                          :avatar nil
           :examples $ []
           :schema $ :: 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
