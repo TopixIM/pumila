@@ -49,7 +49,7 @@
                   -> (nth op 0) (.unwrap-or :unknown)
                   , :states
                 js/console.log |Dispatch op
-              tag-match op
+              match op
                 (:states cursor state)
                   reset! *states $ update-states (deref *states) cursor state
                 (:effect/connect) (connect!)
@@ -78,7 +78,7 @@
         'on-server-data $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn on-server-data (data)
-              tag-match data $
+              match data $
                 :patch changes
                 do
                   when config/dev? $ js/console.log |Changes changes
@@ -244,7 +244,7 @@
                     {} $ :padding "|8px 16px"
                   comp-title "|What do you feel now?"
                   =< nil 16
-                  list-> emotions $ -> emotions (.to-list)
+                  list-> emotions $ -> (unsafe-coerce emotions 'Map) (.to-list)
                     .sort-by $ fn (pair)
                       negate $ assert-type
                         app.schema/read-field (last pair) :score
@@ -274,7 +274,7 @@
                       <> "|View history"
                   div ({})
                     list-> ({})
-                      -> moods (.to-list)
+                      -> (unsafe-coerce moods 'Map) (.to-list)
                         .sort-by $ fn (pair)
                           negate $ assert-type
                             app.schema/read-field (last pair) :time
@@ -471,7 +471,7 @@
                 =< nil 16
                 div ({})
                   list-> ({})
-                    -> emotions (.to-list)
+                    -> (unsafe-coerce emotions 'Map) (.to-list)
                       .map-pair $ fn (k emotion)
                         [] k $ comp-emotion emotion nil
                           fn (e d!)
@@ -513,7 +513,7 @@
                       unsafe-coerce
                         {} (:width |100%) (:padding "|8px 16px")
                         :: 'Map 'Tag 'Dynamic
-                  -> moods (.to-list)
+                  -> (unsafe-coerce moods 'Map) (.to-list)
                     .sort-by $ fn (pair)
                       negate $ assert-type
                         app.schema/read-field (last pair) :time
@@ -737,7 +737,7 @@
                   =< 8 nil
                   list->
                     {} $ :style ui/row
-                    -> members (.to-list)
+                    -> (unsafe-coerce members 'Map) (.to-list)
                       .map-pair $ fn (k username)
                         [] k $ div
                           {} $ :style
@@ -959,7 +959,7 @@
             defn run-server! (port)
               wss-serve! (&{} :port port)
                 fn (data)
-                  tag-match data
+                  match data
                     (:connect sid)
                       do
                         dispatch! (:: :session/connect) sid
@@ -986,8 +986,12 @@
                 let
                     db $ app.schema/read-field reel :db
                     records $ app.schema/read-field reel :records
-                    session $ (get-in db ([] :sessions sid)) .unwrap-or schema/session
-                    old-store $ (get @*client-caches sid) .unwrap-or nil
+                    session $
+                      get-in db $ [] :sessions sid
+                      , .unwrap-or schema/session
+                    old-store $
+                      get @*client-caches sid
+                      , .unwrap-or nil
                     new-store $ twig-container db session records
                     changes $ diff-twig old-store new-store
                       {} $ :key :id
@@ -1049,7 +1053,9 @@
                         case-default (app.schema/read-field router :name) ({})
                           :home $ {}
                             :emotions $ app.schema/read-field user :emotions
-                            :moods $ -> (app.schema/read-field user :moods) (.to-list)
+                            :moods $ ->
+                              unsafe-coerce (app.schema/read-field user :moods) 'Map
+                              .to-list
                               .sort-by $ fn (pair)
                                 negate $ app.schema/read-field (last pair) :time
                               take 8
@@ -1073,7 +1079,9 @@
             defn twig-members (sessions users)
               -> sessions $ map-kv
                 fn (k session)
-                  [] k $ (get-in users ([] (app.schema/read-field session :user-id) :name)) .unwrap-or nil
+                  [] k $
+                    get-in users $ [] (app.schema/read-field session :user-id) :name
+                    , .unwrap-or nil
           :examples $ []
           :schema $ :: 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
@@ -1098,7 +1106,7 @@
         'updater $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn updater (db op sid op-id op-time)
-              tag-match op
+              match op
                 (:session/connect) (session/connect db sid op-id op-time)
                 (:session/disconnect) (session/disconnect db sid op-id op-time)
                 (:session/remove-message op-data) (session/remove-message db op-data sid op-id op-time)
@@ -1124,7 +1132,9 @@
           :code $ quote
             defn create-one (db op-data sid op-id op-time)
               let
-                  user-id $ (get-in db ([] :sessions sid :user-id)) .unwrap-or nil
+                  user-id $
+                    get-in db $ [] :sessions sid :user-id
+                    , .unwrap-or nil
                 update-in db ([] :users user-id :emotions)
                   fn (emotions-option)
                     let
@@ -1142,9 +1152,14 @@
           :code $ quote
             defn remove-one (db op-data sid op-id op-time)
               let
-                  user-id $ (get-in db ([] :sessions sid :user-id)) .unwrap-or nil
+                  user-id $
+                    get-in db $ [] :sessions sid :user-id
+                    , .unwrap-or nil
                 update-in db ([] :users user-id :emotions)
-                  fn (emotions-option) (dissoc (option:unwrap-or emotions-option ({})) op-data)
+                  fn (emotions-option)
+                    dissoc
+                      option:unwrap-or emotions-option $ {}
+                      , op-data
           :examples $ []
           :schema $ :: 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
@@ -1156,7 +1171,9 @@
           :code $ quote
             defn create-one (db op-data sid op-id op-time)
               let
-                  user-id $ (get-in db ([] :sessions sid :user-id)) .unwrap-or nil
+                  user-id $
+                    get-in db $ [] :sessions sid :user-id
+                    , .unwrap-or nil
                 assoc-in db ([] :users user-id :moods op-id)
                   merge schema/mood op-data $ {} (:id op-id) (:time op-time)
           :examples $ []
@@ -1165,9 +1182,14 @@
           :code $ quote
             defn remove-one (db op-data sid op-id op-time)
               let
-                  user-id $ (get-in db ([] :sessions sid :user-id)) .unwrap-or nil
+                  user-id $
+                    get-in db $ [] :sessions sid :user-id
+                    , .unwrap-or nil
                 update-in db ([] :users user-id :moods)
-                  fn (moods-option) (dissoc (option:unwrap-or moods-option ({})) op-data)
+                  fn (moods-option)
+                    dissoc
+                      option:unwrap-or moods-option $ {}
+                      , op-data
           :examples $ []
           :schema $ :: 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
@@ -1203,7 +1225,9 @@
             defn remove-message (db op-data sid op-id op-time)
               update-in db ([] :sessions sid :messages)
                 fn (messages-option)
-                  dissoc (option:unwrap-or messages-option ({})) $ app.schema/read-field op-data :id
+                  dissoc
+                    option:unwrap-or messages-option $ {}
+                    app.schema/read-field op-data :id
           :examples $ []
           :schema $ :: 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
@@ -1266,8 +1290,10 @@
                   (:some _user)
                     update-in db ([] :sessions sid :messages)
                       fn (messages-option)
-                        assoc (option:unwrap-or messages-option ({})) op-id $ {} (:id op-id)
-                          :text $ str "|Name is taken: " username
+                        assoc
+                          option:unwrap-or messages-option $ {}
+                          , op-id $ {} (:id op-id)
+                            :text $ str "|Name is taken: " username
                   (:none)
                     -> db
                       assoc-in ([] :sessions sid :user-id) op-id
