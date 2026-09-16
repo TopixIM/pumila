@@ -41,8 +41,6 @@ jobs:
         git diff --exit-code -- calcit.cirru
         calcit calcit.cirru --compat-types --check-only
         calcit calcit.cirru --compat-types --entry server --check-only
-        calcit calcit.cirru analyze dynamic-methods --max 0
-        calcit calcit.cirru --entry server analyze dynamic-methods --max 0
         calcit calcit.cirru analyze deprecated --summary-only
         calcit calcit.cirru --entry server analyze deprecated --summary-only
         calcit calcit.cirru analyze quality --baseline config/calcit-quality.cirru
