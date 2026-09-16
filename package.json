@@ -5,7 +5,7 @@
   "description": "Cumulo Workflow",
   "main": "index.js",
   "scripts": {
-    "compile-page": "calcit calcit.cirru js",
+    "compile-page": "calcit calcit.cirru --compat-types js",
     "release-page": "vite build --base=./",
     "watch-page": "calcit calcit.cirru js --watch"
   },
@@ -16,7 +16,7 @@
   "author": "jiyinyiyong",
   "license": "MIT",
   "dependencies": {
-    "@calcit/procs": "0.13.77",
+    "@calcit/procs": "0.14.17",
     "dayjs": "^1.11.18",
     "shortid": "^2.2.17"
   },
