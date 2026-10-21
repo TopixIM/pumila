@@ -14,6 +14,8 @@ https://github.com/Cumulo/calcium-workflow
 
 COS 只上传前端 `dist/`。生产 CDN 路径保持 `https://cos-sh.tiye.me/TopixIM/pumila/`，同仓库 PR 预览使用 `pr/<编号>/<run-id>/<attempt>/`；fork PR 不使用部署 secrets。`worktools/cos-upload-action@v1.2.0` 用 `public-base-url` 和内置 `verify-*` 默认配置校验上传，无额外验证脚本。
 
+依赖机器人或其他缺少 COS 凭据的 PR 保留全部编译/类型门禁，只告警并跳过前端预览上传；当前生产提交缺少任一 COS 凭据仍立即失败，阻止后续前后端 rsync。不为 PR 开放额外 secret，不改变前后端目录，不代表已升级至 Calcit 0.30.1。
+
 生产运行排队且不取消进行中的上传，上传前一次检查 main SHA，旧提交跳过部署；不是原子发布。原 `pumila.chenyong.life` 主机、`rsync_private_key_tc` secret、web rsync 目录与 `/servers/pumila/` 服务端目录都不变，`dist-server/` 不上传 COS。不启动服务、不改持久化文件或数据格式。
 
 现有模块发布图沿用 `caps --ci` 的最高 SemVer 解析及 warning，不声称 strict 依赖图已通过，也不使用 hash/main 绕过。`js-out/`、`dist/`、`dist-server/` 和旧 Snapshot 不入库。
