@@ -35,6 +35,18 @@ function queueCode(before,after,id,path=[]){
 function migrate(node,id){
  if(!Array.isArray(node)||['quote','quasiquote',';','comment','defmacro'].includes(node[0]))return node;
  node=node.map(x=>migrate(x,id));
+ if(node[0]==='some?'){
+  assert.ok(['app.comp.emotion-form/comp-emotion-form','app.twig.container/twig-container'].includes(id));
+  assert.equal(node[1][0],'app.schema/read-field');node[0]='non-nil?';
+  changes.push({id,kind:'raw-nil-predicate'});
+ }
+ if(node[0]==='%::'&&node[1]==='MapEntryDecision'){
+  assert.equal(id,'app.twig.container/twig-members');node=node.slice(1);
+  changes.push({id,kind:'named-map-entry-constructor'});
+ }
+ if(id==='app.client/main!'&&node[0]==='on-page-touch'){
+  assert.equal(node[1][0],'fn');assert.deepEqual(node[1][1],[]);node[1].push('&unit');
+ }
  if(id==='app.client/mount-target'&&node[0]==='js/document.querySelector'){
   assert.deepEqual(node,['js/document.querySelector','|.app']);
   return ['.query-selector',['js-cast','js/document',"'respo.dom/DomDocument"],'|.app'];
