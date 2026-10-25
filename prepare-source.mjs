@@ -35,6 +35,10 @@ function queueCode(before,after,id,path=[]){
 function migrate(node,id){
  if(!Array.isArray(node)||['quote','quasiquote',';','comment','defmacro'].includes(node[0]))return node;
  node=node.map(x=>migrate(x,id));
+ if(id==='app.client/mount-target'&&node[0]==='js/document.querySelector'){
+  assert.deepEqual(node,['js/document.querySelector','|.app']);
+  return ['.query-selector',['js-cast','js/document',"'respo.dom/DomDocument"],'|.app'];
+ }
  if(id==='app.comp.emotions/comp-emotion'&&JSON.stringify(node)===JSON.stringify(['app.schema/as-style','style'])){
   // This component publicly accepts nil for its optional style; {} is merge's identity.
   return ['if',['nil?','style'],['{}'],node];
@@ -156,6 +160,7 @@ for(const d of expected.defs){
  const schemaUpdates={
   'app.comp.kit/comp-field':{args:["'String","'Dynamic"]},
   'app.client/dispatch!':{return:"'Unit"},
+  'app.client/mount-target':{return:['::',"'JsNullish","'respo.dom/DomElement"]},
   'app.updater/updater':{args:[mapType("'Tag"),"'Dynamic","'Dynamic","'Dynamic","'Dynamic"],return:mapType("'Tag")},
   'app.twig.container/twig-container':{args:[mapType("'Tag"),"'Dynamic",listType(listType("'Dynamic"))]},
   'app.twig.container/twig-members':{args:[mapType("'Number"),mapType("'String")],return:mapType("'Number")},
