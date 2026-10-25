@@ -29,7 +29,10 @@ const fieldTypes={
 function queueCode(before,after,id,path=[]){
  if(JSON.stringify(before)===JSON.stringify(after))return;
  if(Array.isArray(before)&&Array.isArray(after)&&before.length===after.length){before.forEach((x,i)=>queueCode(x,after[i],id,[...path,i]));return;}
- assert.ok(path.length,'root definition replacement requires explicit separate handling');
+ if(!path.length){
+  assert.equal(id,'app.client/dispatch!');assert.equal(after[0],'defn');assert.equal(after.at(-1),'&unit');
+  operations.push(['edit','def',id,'--overwrite','--input-format','json-ast','--code',JSON.stringify(after)]);return;
+ }
  operations.push(['tree','replace',id,'--path','@'+path.join('.'),'--input-format','json-ast','--code',JSON.stringify(after)]);
 }
 function migrate(node,id){
@@ -153,7 +156,7 @@ function migrate(node,id){
 for(const d of expected.defs){
  const old=structuredClone(d.code);d.code=migrate(d.code,d.id);
  if(d.id==='app.updater/updater')d.code[3]=checked(d.code[3],mapType("'Tag"));
- if(d.id==='app.client/dispatch!')d.code[4]=['do',d.code[4],'&unit'];
+ if(d.id==='app.client/dispatch!')d.code.push('&unit');
  queueCode(old,d.code,d.id);
  if(mapDefs.has(d.id)||d.id==='app.server/as-change-list'){
   const before=JSON.stringify(d.schema);assert.equal(d.schema[0],'{}');d.schema=d.schema.filter(x=>!Array.isArray(x)||x[0]!==':features');
