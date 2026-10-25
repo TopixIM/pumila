@@ -250,4 +250,4 @@ writeFileSync('acceptance/lock-diff.txt',run('git',['diff','--text','--','yarn.l
 assert.ok(nonRuntime(newLock)===nonRuntime(oldLock),'unexpected non-runtime lock changes; inspect acceptance/lock-diff.txt');
 assert.match(newLock,/"@calcit\/procs@npm:0\.30\.1":/);assert.match(newLock,/"@calcit\/finger-vec@npm:0\.1\.1":/);assert.match(newLock,/"@cirru\/parser\.ts@npm:0\.0\.10":/);
 run('git',['diff','--exit-code',p.base,'--','.github/workflows/upload.yaml','README.md']);
-writeFileSync('acceptance/source-evidence.json',JSON.stringify({beforeBlob:p.blob,afterBlob:blob(),definitions:expected.defs.length,namespaces:24,changes,operationCount:operations.length,fullSourceViewsMatch:true,retiredUnusedLilac:true,manifestsUnchanged:true,runtimeOnlyLock:true}));
+writeFileSync('acceptance/source-evidence.json',JSON.stringify({stage:process.argv[2],beforeBlob:p.blob,afterBlob:blob(),definitions:expected.defs.length,namespaces:24,changes,operationCount:operations.length,fullSourceViewsMatch:true,retiredUnusedLilac:true,manifestsUnchanged:true,runtimeOnlyLock:true}));
