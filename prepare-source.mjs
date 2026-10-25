@@ -13,9 +13,19 @@ const expected=structuredClone(norm(p.before)),operations=[],changes=[];
 const aliases={'defatom':'defref','add-watch':'add-watch!','remove-watch':'remove-watch!','option:unwrap-or':'.unwrap-or','option:fold':'.fold'};
 const hostDefs=new Set(['app.client/connect!','app.client/simulate-login!','app.client/ssr?','app.comp.history/comp-record']);
 const mapDefs=new Set(['app.schema/as-map','app.schema/as-map-option','app.schema/as-string-map','app.schema/as-style','app.server/parse-database']);
+function queueCode(before,after,id,path=[]){
+ if(JSON.stringify(before)===JSON.stringify(after))return;
+ if(Array.isArray(before)&&Array.isArray(after)&&before.length===after.length){before.forEach((x,i)=>queueCode(x,after[i],id,[...path,i]));return;}
+ assert.ok(path.length,'root definition replacement requires explicit separate handling');
+ operations.push(['tree','replace',id,'--path','@'+path.join('.'),'--input-format','json-ast','--code',JSON.stringify(after)]);
+}
 function migrate(node,id){
  if(!Array.isArray(node)||['quote','quasiquote',';','comment','defmacro'].includes(node[0]))return node;
  node=node.map(x=>migrate(x,id));
+ if(node[0]==='fn'&&JSON.stringify(node[1])===JSON.stringify(['e','d!','m!'])){
+  assert.equal(id,'app.comp.profile/comp-profile');assert.equal(node[2][0],'.replace');assert.equal(node[2][1],'js/location');
+  node[1]=['e','d!'];changes.push({id,kind:'refresh-event-arity'});
+ }
  if(aliases[node[0]]){changes.push({id,kind:'alias',before:node[0],after:aliases[node[0]]});node[0]=aliases[node[0]];}
  if(node[0]==='case-default'){
   assert.equal(id,'app.twig.container/twig-container');assert.ok(node.slice(3).every(c=>Array.isArray(c)&&c.length===2&&/^:/.test(c[0])));
@@ -33,14 +43,14 @@ function migrate(node,id){
  return node;
 }
 for(const d of expected.defs){
- const old=JSON.stringify(d.code);d.code=migrate(d.code,d.id);
- if(JSON.stringify(d.code)!==old)operations.push(['tree','replace',d.id,'--path','@','--input-format','json-ast','--code',JSON.stringify(d.code)]);
+ const old=structuredClone(d.code);d.code=migrate(d.code,d.id);queueCode(old,d.code,d.id);
  if(mapDefs.has(d.id)||d.id==='app.server/as-change-list'){
   const before=JSON.stringify(d.schema);assert.equal(d.schema[0],'{}');d.schema=d.schema.filter(x=>!Array.isArray(x)||x[0]!==':features');
   if(JSON.stringify(d.schema)!==before)operations.push(['edit','schema',d.id,'--input-format','json-ast','--code',JSON.stringify(d.schema)]);
  }
 }
 assert.equal(changes.filter(c=>c.kind==='alias').length,23);assert.equal(changes.filter(c=>c.kind==='checked-boundary').length,17);assert.equal(changes.filter(c=>c.kind==='literal-match').length,1);
+assert.equal(changes.filter(c=>c.kind==='refresh-event-arity').length,1);
 const allDefinitions=JSON.stringify(expected.defs);assert.ok(!allDefinitions.includes('lilac'));assert.ok(!allDefinitions.includes('read-string'));
 for(const n of expected.namespaces){
  const require=n.ns_code.find(x=>Array.isArray(x)&&x[0]===':require');if(!require)continue;
