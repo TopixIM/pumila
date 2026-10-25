@@ -200,6 +200,30 @@ expected.namespaces.find(n=>n.namespace==='app.schema').definition_count++;
 operations.push(['edit','def',scoreId,'--input-format','json-ast','--code',JSON.stringify(scoreCode)]);
 operations.push(['edit','schema',scoreId,'--input-format','json-ast','--code',JSON.stringify(['::',':fn',['{}',...scoreSchema.slice(1).filter(x=>x[0]!==':kind')]])]);
 operations.push(['edit','add-test',scoreId,'legacy-score-boundary','--input-format','json-ast','--code',JSON.stringify(scoreTest)]);
+function addBusinessTest(id,name,code){
+ const d=expected.defs.find(d=>d.id===id);assert.ok(d);assert.equal(d.tests.length,0);
+ d.tests.push({name,code,tags:[]});
+ operations.push(['edit','add-test',id,name,'--input-format','json-ast','--code',JSON.stringify(code)]);
+}
+const emotionPath=['[]',':users','|u',':emotions','|e'];
+const oldEmotion=['{}',[':id','|e'],[':score','|2.5'],[':text','|old'],[':extra','|entry-kept']];
+const sampleDb=['{}',[':extra','|root-kept'],[':sessions',['{}',['1',['{}',[':user-id','|u']]]]],[':users',['{}',['|u',['{}',[':emotions',['{}',['|e',oldEmotion]]]]]]]];
+addBusinessTest('app.updater.emotion/create-one','legacy-score-partial-edit',['let',[
+ ['db',sampleDb],
+ ['edited',['create-one','db',['{}',[':id','|e'],[':text','|updated']],'1','|op','100']],
+ ['created',['create-one','db',['{}',[':score','|3'],[':text','|new']],'1','|new','100']],
+ ],['assert=',['assoc-in','db',emotionPath,['{}',[':id','|e'],[':score','2.5'],[':text','|updated'],[':extra','|entry-kept']]],'edited'],
+ ['assert=','3',['.unwrap',['get-in','created',['[]',':users','|u',':emotions','|new',':score']]]],
+ ['assert=','|root-kept',['.unwrap',['get','created',':extra']]]]);
+addBusinessTest('app.twig.container/twig-members','number-session-keys-with-guest',['assert=',
+ ['{}',['1','|Alice'],['2','nil']],
+ ['twig-members',['{}',['1',['{}',[':user-id','|u']]],['2',['{}',[':user-id','nil']]]],['{}',['|u',['{}',[':name','|Alice']]]]]]);
+addBusinessTest('app.server/as-change-list','wire-patch-roundtrip',['let',[
+ ['before',['{}',[':count','1'],[':nested',['{}',[':text','|before']]]]],
+ ['after',['{}',[':count','2'],[':nested',['{}',[':text','|after']]],[':extra','|kept']]],
+ ['changes',['as-change-list',['diff-twig','before','after',['{}',[':key',':id']]]]],
+ ['wire',['format-cirru-edn',['::',':patch','changes']]],
+ ],['match',['parse-cirru-edn','wire'],[[':patch','raw'],['assert=','after',['recollect.patch/patch-twig','before',['as-change-list','raw']]]],['_',['raise','|Expected patch wire message']]]]);
 assert.equal(changes.filter(c=>c.kind==='alias').length,23);assert.equal(changes.filter(c=>c.kind==='checked-boundary').length,17);assert.equal(changes.filter(c=>c.kind==='literal-match').length,1);
 assert.equal(changes.filter(c=>c.kind==='refresh-event-arity').length,1);
 assert.equal(changes.filter(c=>c.kind==='checked-assertion').length,7);assert.equal(changes.filter(c=>c.kind==='concrete-reel-constructor').length,1);

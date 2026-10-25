@@ -42,7 +42,9 @@ jobs:
           test "$(git hash-object calcit.cirru)" = "$before_blob"
           calcit calcit.cirru --check-only
           calcit calcit.cirru --entry server --check-only
-          calcit --entry server test app.schema/as-score --require-match
+          for target in app.schema/as-score app.updater.emotion/create-one app.twig.container/twig-members app.server/as-change-list; do
+            calcit --entry server test "$target" --require-match
+          done
           calcit analyze check-public --ns app.client --ns app.comp.container --ns app.comp.dashboard --ns app.comp.emotion-form --ns app.comp.emotions --ns app.comp.history --ns app.comp.kit --ns app.comp.login --ns app.comp.navigation --ns app.comp.profile --ns app.config --ns app.schema --ns app.style
           calcit --entry server analyze check-public --ns 'app.$meta' --ns app.config --ns app.schema --ns app.server --ns app.twig.container --ns app.twig.user --ns app.updater --ns app.updater.emotion --ns app.updater.mood --ns app.updater.router --ns app.updater.session --ns app.updater.user
           yarn compile-page
