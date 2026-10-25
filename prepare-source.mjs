@@ -64,6 +64,12 @@ function migrate(node,id){
  if(id==='app.server/run-server!'&&node[0]==='wss-serve!'){
   assert.equal(node[2][0],'fn');node[2].push('&unit');
  }
+ if(id==='app.server/main!'&&node[0]==='set-interval'){
+  assert.equal(node[2][0],'fn');node[2].push('&unit');
+ }
+ if(id==='app.updater.emotion/create-one'&&node[0]==='merge'){
+  return ['let',[['emotion',node]],['assoc','emotion',':score',['app.schema/as-score',['app.schema/read-field','emotion',':score']]]];
+ }
  if(node[0]==='last'&&node[1]==='pair'){
   assert.ok(['app.comp.dashboard/comp-dashboard','app.comp.history/comp-history','app.twig.container/twig-container'].includes(id));
   changes.push({id,kind:'unwrap-map-pair-value'});return ['.unwrap',node];
@@ -92,7 +98,8 @@ function migrate(node,id){
   changes.push({id,kind:'concrete-reel-constructor'});
  }
  if(node[0]==='assert-type'){
-  assert.equal(node.length,3);node[0]='decode-map-as';changes.push({id,kind:'checked-assertion'});
+  assert.equal(node.length,3);changes.push({id,kind:'checked-assertion'});
+  node=Array.isArray(node[1])&&node[1][0]==='app.schema/read-field'&&node[1][2]===':score'?['app.schema/as-score',node[1]]:['decode-map-as',node[1],node[2]];
  }
  if(node.length===2&&node[1]==='config/site'&&node[0].startsWith?.(':')){
   const key=node[0];assert.ok([':storage-key',':storage-file',':port',':icon'].includes(key),'unreviewed config field '+key);
@@ -125,6 +132,7 @@ function migrate(node,id){
 for(const d of expected.defs){
  const old=structuredClone(d.code);d.code=migrate(d.code,d.id);
  if(d.id==='app.updater/updater')d.code[3]=checked(d.code[3],mapType("'Tag"));
+ if(d.id==='app.client/dispatch!')d.code.push('&unit');
  queueCode(old,d.code,d.id);
  if(mapDefs.has(d.id)||d.id==='app.server/as-change-list'){
   const before=JSON.stringify(d.schema);assert.equal(d.schema[0],'{}');d.schema=d.schema.filter(x=>!Array.isArray(x)||x[0]!==':features');
@@ -143,6 +151,7 @@ for(const d of expected.defs){
  }
  const schemaUpdates={
   'app.comp.kit/comp-field':{args:["'String","'Dynamic"]},
+  'app.client/dispatch!':{return:"'Unit"},
   'app.updater/updater':{args:[mapType("'Tag"),"'Dynamic","'Dynamic","'Dynamic","'Dynamic"],return:mapType("'Tag")},
   'app.twig.container/twig-container':{args:[mapType("'Tag"),"'Dynamic",listType(listType("'Dynamic"))]},
   'app.twig.container/twig-members':{args:[mapType("'Number"),mapType("'String")],return:mapType("'Number")},
@@ -156,6 +165,16 @@ for(const d of expected.defs){
   operations.push(['edit','schema',d.id,'--input-format','json-ast','--code',JSON.stringify(['::',':fn',['{}',...d.schema.slice(1).filter(x=>x[0]!==':kind')]])]);
  }
 }
+const scoreId='app.schema/as-score';
+const scoreCode=['defn','as-score',['value'],['if',['number?','value'],'value',['if',['string?','value'],['match',['parse-float','value'],[[':ok','score'],'score'],[[':err','message'],['raise',['str','|Invalid emotion score: ','message']]]],['raise','|Emotion score must be Number or numeric String']]]];
+const scoreSchema=['{}',[':kind',':fn'],[':args',['[]',"'Dynamic"]],[':return',"'Number"]];
+const rejects=value=>['assert=','true',['try',['do',['as-score',value],'false'],['fn',['message'],'true']]];
+const scoreTest=['do',['assert=','0',['as-score','0']],['assert=','12.5',['as-score','|12.5']],rejects('|'),rejects('|not-a-score')];
+expected.defs.splice(expected.defs.findIndex(d=>d.id==='app.schema/as-string-map'),0,{code:scoreCode,doc:'',examples:[],ffi:null,ffi_edn:null,id:scoreId,js_ffi:null,schema:scoreSchema,tags:[],tests:[{code:scoreTest,name:'legacy-score-boundary',tags:[]}]});
+expected.namespaces.find(n=>n.namespace==='app.schema').definition_count++;
+operations.push(['edit','def',scoreId,'--input-format','json-ast','--code',JSON.stringify(scoreCode)]);
+operations.push(['edit','schema',scoreId,'--input-format','json-ast','--code',JSON.stringify(['::',':fn',['{}',...scoreSchema.slice(1).filter(x=>x[0]!==':kind')]])]);
+operations.push(['edit','add-test',scoreId,'legacy-score-boundary','--input-format','json-ast','--code',JSON.stringify(scoreTest)]);
 assert.equal(changes.filter(c=>c.kind==='alias').length,23);assert.equal(changes.filter(c=>c.kind==='checked-boundary').length,17);assert.equal(changes.filter(c=>c.kind==='literal-match').length,1);
 assert.equal(changes.filter(c=>c.kind==='refresh-event-arity').length,1);
 assert.equal(changes.filter(c=>c.kind==='checked-assertion').length,7);assert.equal(changes.filter(c=>c.kind==='concrete-reel-constructor').length,1);
@@ -182,4 +201,4 @@ writeFileSync('acceptance/lock-diff.txt',run('git',['diff','--text','--','yarn.l
 assert.ok(nonRuntime(newLock)===nonRuntime(oldLock),'unexpected non-runtime lock changes; inspect acceptance/lock-diff.txt');
 assert.match(newLock,/"@calcit\/procs@npm:0\.30\.1":/);assert.match(newLock,/"@calcit\/finger-vec@npm:0\.1\.1":/);assert.match(newLock,/"@cirru\/parser\.ts@npm:0\.0\.10":/);
 run('git',['diff','--exit-code',p.base,'--','.github/workflows/upload.yaml','README.md']);
-writeFileSync('acceptance/source-evidence.json',JSON.stringify({beforeBlob:p.blob,afterBlob:blob(),definitions:82,namespaces:24,changes,operationCount:operations.length,fullSourceViewsMatch:true,retiredUnusedLilac:true,manifestsUnchanged:true,runtimeOnlyLock:true}));
+writeFileSync('acceptance/source-evidence.json',JSON.stringify({beforeBlob:p.blob,afterBlob:blob(),definitions:expected.defs.length,namespaces:24,changes,operationCount:operations.length,fullSourceViewsMatch:true,retiredUnusedLilac:true,manifestsUnchanged:true,runtimeOnlyLock:true}));
