@@ -13,6 +13,17 @@ const expected=structuredClone(norm(p.before)),operations=[],changes=[];
 const aliases={'defatom':'defref','add-watch':'add-watch!','remove-watch':'remove-watch!','option:unwrap-or':'.unwrap-or','option:fold':'.fold'};
 const hostDefs=new Set(['app.client/connect!','app.client/simulate-login!','app.client/ssr?','app.comp.history/comp-record']);
 const mapDefs=new Set(['app.schema/as-map','app.schema/as-map-option','app.schema/as-string-map','app.schema/as-style','app.server/parse-database']);
+const mapType=(key="'Dynamic")=>['::',"'Map",key,"'Dynamic"];
+const listType=value=>['::',"'List",value];
+const checked=(value,type)=>['decode-map-as',value,type];
+const fieldTypes={
+ 'app.comp.container/comp-container':{'store:logged-in?':"'Bool",'store:count':"'Number"},
+ 'app.comp.emotions/comp-emotion':{'emotion:text':"'String"},
+ 'app.comp.login/comp-login':{'state:username':"'String",'state:password':"'String"},
+ 'app.twig.container/twig-container':{'db:sessions':mapType("'Number"),'db:users':mapType("'String")},
+ 'app.updater.user/log-in':{'db:users':mapType("'String")},
+ 'app.updater.user/sign-up':{'db:users':mapType("'String")},
+};
 function queueCode(before,after,id,path=[]){
  if(JSON.stringify(before)===JSON.stringify(after))return;
  if(Array.isArray(before)&&Array.isArray(after)&&before.length===after.length){before.forEach((x,i)=>queueCode(x,after[i],id,[...path,i]));return;}
@@ -22,6 +33,28 @@ function queueCode(before,after,id,path=[]){
 function migrate(node,id){
  if(!Array.isArray(node)||['quote','quasiquote',';','comment','defmacro'].includes(node[0]))return node;
  node=node.map(x=>migrate(x,id));
+ if(node[0]==='last'&&node[1]==='pair'){
+  assert.ok(['app.comp.dashboard/comp-dashboard','app.comp.history/comp-history','app.twig.container/twig-container'].includes(id));
+  changes.push({id,kind:'unwrap-map-pair-value'});return ['.unwrap',node];
+ }
+ if(node[0]==='app.schema/read-field'){
+  const type=fieldTypes[id]?.[node[1]+node[2]];
+  if(type){changes.push({id,kind:'checked-owned-field',field:node[2]});return checked(node,type);}
+  if(id==='app.twig.container/twig-container'&&node[2]===':time')return checked(node,"'Number");
+ }
+ if(id==='app.client/dispatch!'&&node[0]==='update-states'){
+  assert.equal(node[2],'cursor');node[2]=checked('cursor',listType("'Dynamic"));
+ }
+ if(id==='app.comp.profile/comp-profile'&&JSON.stringify(node)===JSON.stringify(['<>','username'])){
+  // Guests have no user name; preserve the exact nil-span emitted by the old <>.
+  return ['if',['nil?','username'],['span',['{}',[':inner-text','nil'],[':style','nil']]],['<>',checked('username',"'String")]];
+ }
+ if(id==='app.updater/updater'&&['user/log-in','user/sign-up','router/change','emotion/create-one','mood/create-one'].includes(node[0])){
+  assert.equal(node[2],'op-data');node[2]=checked('op-data',node[0].startsWith('user/')?listType("'Dynamic"):mapType());
+ }
+ if(id==='app.server/sync-clients!'&&node[0]==='app.schema/read-field'&&node[1]==='reel'){
+  assert.ok([':db',':records'].includes(node[2]));return [node[2],'reel'];
+ }
  if(node[0]==='struct-with'&&node[1]==='reel-schema'){
   assert.equal(id,'app.server/*reel');assert.deepEqual(node.slice(2),[[':base','@*initial-db'],[':db','@*initial-db']]);
   node=['cumulo-reel.core/ReelState',':base','@*initial-db',':db','@*initial-db',':records',['[]'],':merged?','false'];
@@ -59,7 +92,9 @@ function migrate(node,id){
  return node;
 }
 for(const d of expected.defs){
- const old=structuredClone(d.code);d.code=migrate(d.code,d.id);queueCode(old,d.code,d.id);
+ const old=structuredClone(d.code);d.code=migrate(d.code,d.id);
+ if(d.id==='app.updater/updater')d.code[3]=checked(d.code[3],mapType("'Tag"));
+ queueCode(old,d.code,d.id);
  if(mapDefs.has(d.id)||d.id==='app.server/as-change-list'){
   const before=JSON.stringify(d.schema);assert.equal(d.schema[0],'{}');d.schema=d.schema.filter(x=>!Array.isArray(x)||x[0]!==':features');
   if(JSON.stringify(d.schema)!==before){
@@ -70,6 +105,20 @@ for(const d of expected.defs){
  if(d.id==='app.server/*reel'){
   d.schema=['::',"'Ref",['::',"'cumulo-reel.core/ReelState",['::',"'Map","'Tag","'Dynamic"]]];
   operations.push(['edit','schema',d.id,'--input-format','json-ast','--code',JSON.stringify(d.schema)]);
+ }
+ const schemaUpdates={
+  'app.comp.kit/comp-field':{args:["'String","'Dynamic"]},
+  'app.updater/updater':{args:[mapType("'Tag"),"'Dynamic","'Dynamic","'Dynamic","'Dynamic"],return:mapType("'Tag")},
+  'app.twig.container/twig-container':{args:[mapType("'Tag"),"'Dynamic",listType(listType("'Dynamic"))]},
+  'app.twig.container/twig-members':{args:[mapType("'Number"),mapType("'String")],return:mapType("'Number")},
+  'app.server/sync-clients!':{args:[['::',"'cumulo-reel.core/ReelState",mapType("'Tag")]]},
+ }[d.id];
+ if(schemaUpdates){
+  for(const[key,value]of Object.entries(schemaUpdates)){
+   const field=d.schema.find(x=>Array.isArray(x)&&x[0]===':'+key);assert.ok(field);
+   field[1]=key==='args'?['[]',...value]:value;
+  }
+  operations.push(['edit','schema',d.id,'--input-format','json-ast','--code',JSON.stringify(['::',':fn',['{}',...d.schema.slice(1).filter(x=>x[0]!==':kind')]])]);
  }
 }
 assert.equal(changes.filter(c=>c.kind==='alias').length,23);assert.equal(changes.filter(c=>c.kind==='checked-boundary').length,17);assert.equal(changes.filter(c=>c.kind==='literal-match').length,1);
