@@ -24,7 +24,7 @@ if(mode==='before'){
 }else if(mode==='apply'){
  assert.equal(blob(),p.blob);assert.deepEqual(views(),norm(p.before));guard();
  const operations=p.sites.map(s=>['tree','replace',s.definition,'--path','@'+s.path+'.0','--input-format','json-ast','--code',JSON.stringify('.len')]);
- for(const s of p.schemaChanges)operations.push(['edit','schema',s.definition,'--input-format','json-ast','--code',JSON.stringify(s.after)]);
+ for(const s of p.schemaChanges)operations.push(['edit','schema',s.definition,'--input-format','json-ast','--code',JSON.stringify(['::',':fn',['{}',...s.after.slice(1).filter(x=>x[0]!==':kind')]])]);
  for(const s of p.boundaryChanges)operations.push(['tree','replace',s.definition,'--path','@'+s.path,'--input-format','json-ast','--code',JSON.stringify(s.after)]);
  for(const t of p.newTests)operations.push(['edit','add-test',t.definition,t.name,'--input-format','json-ast','--code',JSON.stringify(t.code)]);
  for(const t of p.testChanges){const op=['edit','add-test',t.definition,t.name,'--overwrite','--input-format','json-ast','--code',JSON.stringify(t.after)];if(t.tags.length)op.push('--tags',t.tags.join(','));operations.push(op);}
