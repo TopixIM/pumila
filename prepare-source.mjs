@@ -46,7 +46,10 @@ for(const d of expected.defs){
  const old=structuredClone(d.code);d.code=migrate(d.code,d.id);queueCode(old,d.code,d.id);
  if(mapDefs.has(d.id)||d.id==='app.server/as-change-list'){
   const before=JSON.stringify(d.schema);assert.equal(d.schema[0],'{}');d.schema=d.schema.filter(x=>!Array.isArray(x)||x[0]!==':features');
-  if(JSON.stringify(d.schema)!==before)operations.push(['edit','schema',d.id,'--input-format','json-ast','--code',JSON.stringify(d.schema)]);
+  if(JSON.stringify(d.schema)!==before){
+   const transport=['::',':fn',['{}',...d.schema.slice(1).filter(x=>x[0]!==':kind')]];
+   operations.push(['edit','schema',d.id,'--input-format','json-ast','--code',JSON.stringify(transport)]);
+  }
  }
 }
 assert.equal(changes.filter(c=>c.kind==='alias').length,23);assert.equal(changes.filter(c=>c.kind==='checked-boundary').length,17);assert.equal(changes.filter(c=>c.kind==='literal-match').length,1);
