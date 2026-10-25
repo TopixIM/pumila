@@ -20,7 +20,7 @@ const listType=value=>['::',"'List",value];
 const checked=(value,type)=>['decode-map-as',value,type];
 const fieldTypes={
  'app.comp.container/comp-container':{'store:logged-in?':"'Bool",'store:count':"'Number"},
- 'app.comp.emotions/comp-emotion':{'emotion:text':"'String"},
+ 'app.comp.dashboard/comp-dashboard':{'mood:text':"'String"},
  'app.comp.login/comp-login':{'state:username':"'String",'state:password':"'String"},
  'app.twig.container/twig-container':{'db:sessions':mapType("'Number"),'db:users':mapType("'String")},
  'app.updater.user/log-in':{'db:users':mapType("'String")},
@@ -35,6 +35,25 @@ function queueCode(before,after,id,path=[]){
 function migrate(node,id){
  if(!Array.isArray(node)||['quote','quasiquote',';','comment','defmacro'].includes(node[0]))return node;
  node=node.map(x=>migrate(x,id));
+ if(node[0]==='comp-emotion'&&Array.isArray(node[1])&&node[1][0]==='get'){
+  assert.ok(['app.comp.dashboard/comp-dashboard','app.comp.history/comp-record'].includes(id));
+  node[1]=['.unwrap-or',node[1],'nil'];changes.push({id,kind:'unwrap-emotion-lookup'});
+ }
+ if(id==='app.comp.emotions/comp-emotion'&&JSON.stringify(node)===JSON.stringify(['<>',['app.schema/read-field','emotion',':text']])){
+  // Deleted or unavailable emotions retain the old empty label, not a fabricated emotion.
+  return ['let',[['text',node[1]]],['if',['nil?','text'],['span',['{}',[':inner-text','nil'],[':style','nil']]],['<>',checked('text',"'String")]]];
+ }
+ if(['app.comp.emotion-form/comp-emotion-form','app.comp.history/comp-record'].includes(id)&&node[0]==='.show'){
+  assert.equal(node[2],'d!');assert.equal(node[3][0],'fn');assert.deepEqual(node[3][1],[]);
+  node[2]=['fn',['op'],['d!','op'],'&unit'];node[3].push('&unit');
+  changes.push({id,kind:'confirm-unit-adapters'});
+ }
+ if(['app.updater.user/log-in','app.updater.user/sign-up'].includes(id)&&node[0]==='md5'){
+  assert.equal(node[1],'password');node[1]=checked('password',"'String");
+ }
+ if(id==='app.server/sync-clients!'&&node[0]==='wss-each!'){
+  assert.equal(node[1][0],'fn');assert.deepEqual(node[1][1],['sid']);node[1].push('&unit');
+ }
  if(node[0]==='last'&&node[1]==='pair'){
   assert.ok(['app.comp.dashboard/comp-dashboard','app.comp.history/comp-history','app.twig.container/twig-container'].includes(id));
   changes.push({id,kind:'unwrap-map-pair-value'});return ['.unwrap',node];
@@ -106,6 +125,10 @@ for(const d of expected.defs){
  }
  if(d.id==='app.server/*reel'){
   d.schema=['::',"'Ref",['::',"'cumulo-reel.core/ReelState",['::',"'Map","'Tag","'Dynamic"]]];
+  operations.push(['edit','schema',d.id,'--input-format','json-ast','--code',JSON.stringify(d.schema)]);
+ }
+ if(d.id==='app.server/*client-caches'){
+  d.schema=['::',"'Ref",['::',"'Map","'Number",mapType("'Tag")]];
   operations.push(['edit','schema',d.id,'--input-format','json-ast','--code',JSON.stringify(d.schema)]);
  }
  const schemaUpdates={
