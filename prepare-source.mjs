@@ -35,6 +35,10 @@ function queueCode(before,after,id,path=[]){
 function migrate(node,id){
  if(!Array.isArray(node)||['quote','quasiquote',';','comment','defmacro'].includes(node[0]))return node;
  node=node.map(x=>migrate(x,id));
+ if(id==='app.comp.emotions/comp-emotion'&&JSON.stringify(node)===JSON.stringify(['app.schema/as-style','style'])){
+  // This component publicly accepts nil for its optional style; {} is merge's identity.
+  return ['if',['nil?','style'],['{}'],node];
+ }
  if(node[0]==='comp-emotion'&&Array.isArray(node[1])&&node[1][0]==='get'){
   assert.ok(['app.comp.dashboard/comp-dashboard','app.comp.history/comp-record'].includes(id));
   node[1]=['.unwrap-or',node[1],'nil'];changes.push({id,kind:'unwrap-emotion-lookup'});
