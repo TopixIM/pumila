@@ -22,6 +22,22 @@ function queueCode(before,after,id,path=[]){
 function migrate(node,id){
  if(!Array.isArray(node)||['quote','quasiquote',';','comment','defmacro'].includes(node[0]))return node;
  node=node.map(x=>migrate(x,id));
+ if(node[0]==='struct-with'&&node[1]==='reel-schema'){
+  assert.equal(id,'app.server/*reel');assert.deepEqual(node.slice(2),[[':base','@*initial-db'],[':db','@*initial-db']]);
+  node=['cumulo-reel.core/ReelState',':base','@*initial-db',':db','@*initial-db',':records',['[]'],':merged?','false'];
+  changes.push({id,kind:'concrete-reel-constructor'});
+ }
+ if(node[0]==='assert-type'){
+  assert.equal(node.length,3);node[0]='decode-map-as';changes.push({id,kind:'checked-assertion'});
+ }
+ if(node.length===2&&node[1]==='config/site'&&node[0].startsWith?.(':')){
+  const key=node[0];assert.ok([':storage-key',':storage-file',':port'].includes(key),'unreviewed config field '+key);
+  node=key===':storage-key'?['decode-map-as',['.unwrap',['get','config/site',key]],"'String"]:['get','config/site',key];
+  changes.push({id,kind:'explicit-config-map-lookup',key});
+ }
+ if(node[0]==='->'&&node[1]==='config/site'){
+  node=node.map((x,i)=>i>1&&typeof x==='string'&&x.startsWith(':')?['get',x]:x);
+ }
  if(node[0]==='fn'&&JSON.stringify(node[1])===JSON.stringify(['e','d!','m!'])){
   assert.equal(id,'app.comp.profile/comp-profile');assert.equal(node[2][0],'.replace');assert.equal(node[2][1],'js/location');
   node[1]=['e','d!'];changes.push({id,kind:'refresh-event-arity'});
@@ -33,7 +49,7 @@ function migrate(node,id){
  }
  if(node[0]==='unsafe-coerce'){
   assert.equal(node.length,3);changes.push({id,kind:'checked-boundary'});
-  if(hostDefs.has(id))node=['js-cast',node[1],node[2]];
+  if(hostDefs.has(id))node=node[2]==="'String"?['js-ffi.contract/expect-string','|'+id,node[1]]:['js-cast',node[1],node[2]];
   else if(mapDefs.has(id))node=['decode-map-as',node[1],node[2]];
   else if(id==='app.comp.profile/comp-profile')node=['decode-map-as',node[1],['::',"'Map","'Dynamic","'Dynamic"]];
   else if(['app.client/on-server-data','app.server/as-change-list'].includes(id))node=['recollect.schema/decode-changes',node[1]];
@@ -51,16 +67,22 @@ for(const d of expected.defs){
    operations.push(['edit','schema',d.id,'--input-format','json-ast','--code',JSON.stringify(transport)]);
   }
  }
+ if(d.id==='app.server/*reel'){
+  d.schema=['::',"'Ref",['::',"'cumulo-reel.core/ReelState",['::',"'Map","'Tag","'Dynamic"]]];
+  operations.push(['edit','schema',d.id,'--input-format','json-ast','--code',JSON.stringify(d.schema)]);
+ }
 }
 assert.equal(changes.filter(c=>c.kind==='alias').length,23);assert.equal(changes.filter(c=>c.kind==='checked-boundary').length,17);assert.equal(changes.filter(c=>c.kind==='literal-match').length,1);
 assert.equal(changes.filter(c=>c.kind==='refresh-event-arity').length,1);
+assert.equal(changes.filter(c=>c.kind==='checked-assertion').length,7);assert.equal(changes.filter(c=>c.kind==='concrete-reel-constructor').length,1);
 const allDefinitions=JSON.stringify(expected.defs);assert.ok(!allDefinitions.includes('lilac'));assert.ok(!allDefinitions.includes('read-string'));
 for(const n of expected.namespaces){
  const require=n.ns_code.find(x=>Array.isArray(x)&&x[0]===':require');if(!require)continue;
- const rules=require.slice(1).map(rule=>{assert.ok(Array.isArray(rule));const r=rule[0]==='[]'?rule.slice(1):rule.slice();for(let i=0;i<r.length;i++)if(Array.isArray(r[i])&&r[i][0]==='[]')r[i]=r[i].slice(1);return r;}).filter(r=>r[0]!=='cljs.reader');
+ const rules=require.slice(1).map(rule=>{assert.ok(Array.isArray(rule));const r=rule[0]==='[]'?rule.slice(1):rule.slice();for(let i=0;i<r.length;i++)if(Array.isArray(r[i])&&r[i][0]==='[]')r[i]=r[i].slice(1);if(r[0]==='cumulo-reel.core'&&r[1]===':refer')r[2]=r[2].filter(x=>x!=='reel-schema');return r;}).filter(r=>r[0]!=='cljs.reader');
  if(JSON.stringify(rules)!==JSON.stringify(require.slice(1))){require.splice(1,require.length-1,...rules);operations.push(['edit','imports',n.namespace,'--input-format','json-ast','--code',JSON.stringify(['[]',...rules])]);}
 }
 for(const e of expected.config.entries){assert.ok(e.modules.includes('lilac/'));e.modules=e.modules.filter(m=>m!=='lilac/');operations.push(['config','rm-module','lilac/',...(e.name==='default'?[]:['--entry',e.name])]);}
+const browser=expected.config.entries.find(e=>e.name==='default');assert.ok(!browser.modules.includes('js-ffi/'));browser.modules.push('js-ffi/');operations.push(['config','add-module','js-ffi/']);
 mkdirSync('acceptance',{recursive:true});const blob=()=>run('git',['hash-object','calcit.cirru']).trim();
 if(process.argv[2]==='apply'){
  assert.equal(blob(),p.blob);assert.deepEqual(views(),norm(p.before));

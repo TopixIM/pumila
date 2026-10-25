@@ -10,6 +10,7 @@
     |Respo/respo.calcit |0.16.124
     |calcit-lang/calcit-wss |0.2.36
     |calcit-lang/calcit.std |0.2.43
+    |calcit-lang/js-ffi |0.2.5
     |calcit-lang/memof |0.0.40
     |calcit-lang/recollect |0.0.67
     |mvc-works/ws-edn.calcit |0.0.47
