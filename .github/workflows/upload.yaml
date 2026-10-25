@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v7.0.1
       with:
@@ -27,30 +27,39 @@ jobs:
         node-version: 24
         package-manager-cache: false
 
-    - uses: calcit-lang/setup-calcit@v1.5.0
+    - uses: calcit-lang/setup-calcit@ca701be5a471759e442aa053cd100720bbe1f09f # v1.5.0
       with:
-        version: "0.27.0"
+        deps-file: deps.cirru
         tools: calcit,caps
         caps-version: "0.1.1"
 
     - name: Enable Corepack
       run: |
+        set -euo pipefail
         corepack enable
         corepack prepare yarn@4.18.0 --activate
 
     - name: Install and validate dependencies
       run: |
-        caps --ci
+        set -euo pipefail
+        caps --strict --ci
         yarn install --immutable
         caps verify --toolchain
 
     - name: Validate Calcit snapshot and types
       run: |
+        set -euo pipefail
+        test -f calcit.cirru
+        test ! -e compact.cirru
+        test ! -e package.cirru
         calcit calcit.cirru fix --workflow strict --verify --format edn
         calcit calcit.cirru edit format
         git diff --exit-code -- calcit.cirru
         calcit calcit.cirru --check-only
         calcit calcit.cirru --entry server --check-only
+        for target in app.schema/as-score app.updater.emotion/create-one app.twig.container/twig-members app.server/as-change-list; do
+          calcit --entry server test "$target" --require-match
+        done
         calcit analyze check-public --ns app.client --ns app.comp.container --ns app.comp.dashboard --ns app.comp.emotion-form --ns app.comp.emotions --ns app.comp.history --ns app.comp.kit --ns app.comp.login --ns app.comp.navigation --ns app.comp.profile --ns app.config --ns app.schema --ns app.style
         calcit --entry server analyze check-public --ns 'app.$meta' --ns app.config --ns app.schema --ns app.server --ns app.twig.container --ns app.twig.user --ns app.updater --ns app.updater.emotion --ns app.updater.mood --ns app.updater.router --ns app.updater.session --ns app.updater.user
 
@@ -60,6 +69,7 @@ jobs:
         CDN_ORIGIN: https://cos-sh.tiye.me
         PR_NUMBER: ${{ github.event.pull_request.number }}
       run: |
+        set -euo pipefail
         if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
           asset_prefix="${GITHUB_REPOSITORY}/pr/${PR_NUMBER}/${GITHUB_RUN_ID}/${GITHUB_RUN_ATTEMPT}/"
         elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
@@ -113,7 +123,7 @@ jobs:
     - name: Upload static assets to COS
       if: steps.cos-credentials.outputs.available == 'true'
       timeout-minutes: 10
-      uses: worktools/cos-upload-action@v1.2.0
+      uses: worktools/cos-upload-action@06d6027dcca6413c5936e04a9b6e9f0d5ef71ba0 # v1.2.0
       with:
         source-dir: dist
         bucket: ${{ secrets.COS_BUCKET }}
