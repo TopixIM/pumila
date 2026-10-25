@@ -20,7 +20,7 @@ const listType=value=>['::',"'List",value];
 const checked=(value,type)=>['decode-map-as',value,type];
 const fieldTypes={
  'app.comp.container/comp-container':{'store:logged-in?':"'Bool",'store:count':"'Number"},
- 'app.comp.dashboard/comp-dashboard':{'mood:text':"'String"},
+ 'app.comp.dashboard/comp-dashboard':{'mood:text':"'String",'state:show-editor?':"'Bool"},
  'app.comp.login/comp-login':{'state:username':"'String",'state:password':"'String"},
  'app.twig.container/twig-container':{'db:sessions':mapType("'Number"),'db:users':mapType("'String")},
  'app.updater.user/log-in':{'db:users':mapType("'String")},
@@ -45,7 +45,8 @@ function migrate(node,id){
  }
  if(['app.comp.emotion-form/comp-emotion-form','app.comp.history/comp-record'].includes(id)&&node[0]==='.show'){
   assert.equal(node[2],'d!');assert.equal(node[3][0],'fn');assert.deepEqual(node[3][1],[]);
-  node[2]=['fn',['op'],['d!','op'],'&unit'];node[3].push('&unit');
+  node[2]=['fn',['op'],['hint-fn',['{}',[':args',['[]',"'Enum"]],[':return',"'Unit"]]],['d!','op'],'&unit'];
+  node[3].splice(2,0,['hint-fn',['{}',[':args',['[]']],[':return',"'Unit"]]]);node[3].push('&unit');
   changes.push({id,kind:'confirm-unit-adapters'});
  }
  if(['app.updater.user/log-in','app.updater.user/sign-up'].includes(id)&&node[0]==='md5'){
@@ -53,6 +54,15 @@ function migrate(node,id){
  }
  if(id==='app.server/sync-clients!'&&node[0]==='wss-each!'){
   assert.equal(node[1][0],'fn');assert.deepEqual(node[1][1],['sid']);node[1].push('&unit');
+ }
+ if(id==='app.server/sync-clients!'&&JSON.stringify(node)===JSON.stringify([['get','@*client-caches','sid'],'.unwrap-or','nil'])){
+  return ['match',node[0],[[':some','cached-store'],'cached-store'],[[':none'],'nil']];
+ }
+ if(id==='app.server/run-server!'&&node[0]==='dispatch!'&&Array.isArray(node[1])&&node[1][0]==='parse-cirru-edn'){
+  return ['let',[['op',node[1]]],['if',['enum?','op'],['dispatch!','op','sid'],['raise','|Expected an operation Enum']]];
+ }
+ if(id==='app.server/run-server!'&&node[0]==='wss-serve!'){
+  assert.equal(node[2][0],'fn');node[2].push('&unit');
  }
  if(node[0]==='last'&&node[1]==='pair'){
   assert.ok(['app.comp.dashboard/comp-dashboard','app.comp.history/comp-history','app.twig.container/twig-container'].includes(id));
