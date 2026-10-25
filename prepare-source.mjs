@@ -6,7 +6,9 @@ const p=JSON.parse(readFileSync('reviewed-source.json'));
 assert.equal(p.base,'12f93fa0ceb1345551dd9d9b7b3a9dd0663bc26a');
 const run=(exe,args)=>execFileSync(exe,args,{encoding:'utf8',maxBuffer:64e6,stdio:['pipe','pipe','pipe']});
 assert.equal(run('calcit',['-v']).trim(),'0.30.1');
-const norm=v=>Array.isArray(v)?v.map(norm):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,k==='__edn_set'?x.map(norm).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))):norm(x)])):v;
+// Schema is an EDN Map: compare every key/value, independent of its printed order.
+// Source AST arrays (including executable Map expressions) remain order-sensitive.
+const norm=v=>Array.isArray(v)?v.map(norm):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,k==='__edn_set'?x.map(norm).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))):k==='schema'&&Array.isArray(x)&&x[0]==='{}'?['{}',...x.slice(1).map(norm).sort((a,b)=>a[0].localeCompare(b[0]))]:norm(x)])):v;
 const q=(...a)=>{const r=JSON.parse(run('calcit',['calcit.cirru','query',...a,'--format','json']));assert.ok(!r.diagnostics?.some(d=>d.severity==='error'));return norm(r.data);};
 function views(){const namespaces=[],defs=[];for(const n of q('ns').namespaces){const info=q('ns',n);namespaces.push(info);const names=run('calcit',['calcit.cirru','query','defs',n]).split('\n').filter(l=>/^  \S/.test(l)).map(l=>l.trim().split(' ')[0]);assert.equal(names.length,info.definition_count);for(const d of names)defs.push(q('def',n+'/'+d));}return {config:q('config'),namespaces,defs};}
 const expected=structuredClone(norm(p.before)),operations=[],changes=[];
@@ -138,7 +140,8 @@ if(process.argv[2]==='apply'){
  writeFileSync('acceptance/expected-source.json',JSON.stringify(expected));writeFileSync('acceptance/operations.json',JSON.stringify(operations));
  const args=['calcit.cirru','edit','transaction','--file','acceptance/operations.json','--format','json'];const dry=JSON.parse(run('calcit',[...args,'--dry-run']));assert.ok(dry.scoped_revision);writeFileSync('acceptance/preview.json',JSON.stringify(dry));writeFileSync('acceptance/applied.json',run('calcit',[...args,'--expect-revision',dry.scoped_revision]));writeFileSync('acceptance/modified-blob.txt',blob());
 }else assert.equal(process.argv[2],'verify');
-assert.deepEqual(views(),expected);assert.equal(blob(),readFileSync('acceptance/modified-blob.txt','utf8'));
+const actual=views();writeFileSync('acceptance/actual-source.json',JSON.stringify(actual));
+assert.deepEqual(actual,norm(expected));assert.equal(blob(),readFileSync('acceptance/modified-blob.txt','utf8'));
 for(const[f,s]of Object.entries(p.reviewedManifests))assert.equal(readFileSync(f,'utf8'),s);
 const oldLock=p.originalManifests['yarn.lock'],newLock=readFileSync('yarn.lock','utf8');
 const nonRuntime=s=>s.replace(/^"(?:@calcit\/(?:procs|finger-vec)|@cirru\/parser\.ts)@[^\n]+":\n(?:  [^\n]*\n|\n)*/gm,'').replace(/"@calcit\/procs": "npm:[^"]+"/g,'"@calcit/procs": "npm:RUNTIME"');
