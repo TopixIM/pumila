@@ -1163,7 +1163,7 @@
                 logged-in? $ non-nil? $ app.schema/read-field session :user-id
                 router $ app.schema/read-field session :router
                 base-data $ {} (:logged-in? logged-in?) (:session session)
-                  :reel-length $ count records
+                  :reel-length $ .len records
               merge base-data $ app.schema/as-style $ if logged-in?
                 let
                     user $ ->
@@ -1197,7 +1197,7 @@
                         decode-map-as (app.schema/read-field db :sessions) (:: 'Map 'Number 'Dynamic)
                         decode-map-as (app.schema/read-field db :users) (:: 'Map 'String 'Dynamic)
                       _ $ {}
-                    :count $ count $ decode-map-as (app.schema/read-field db :sessions) (:: 'Map 'Number 'Dynamic)
+                    :count $ .len $ decode-map-as (app.schema/read-field db :sessions) (:: 'Map 'Number 'Dynamic)
                     :color $ rand-hex-color!
                 {}
           :examples $ []
@@ -1262,19 +1262,47 @@
                     , sid op-id op-time
                 (:emotion/create-one op-data)
                   emotion/create-one db
-                    decode-map-as op-data $ :: 'Map 'Dynamic 'Dynamic
-                    , sid op-id op-time
+                    decode-map-as op-data $ :: 'Map 'Tag 'Dynamic
+                    decode-map-as sid 'Number
+                    decode-map-as op-id 'String
+                    decode-map-as op-time 'Number
                 (:emotion/remove-one op-data) (emotion/remove-one db op-data sid op-id op-time)
                 (:mood/create-one op-data)
                   mood/create-one db
-                    decode-map-as op-data $ :: 'Map 'Dynamic 'Dynamic
-                    , sid op-id op-time
+                    decode-map-as op-data $ :: 'Map 'Tag 'Dynamic
+                    decode-map-as sid 'Number
+                    decode-map-as op-id 'String
+                    decode-map-as op-time 'Number
                 (:mood/remove-one op-data) (mood/remove-one db op-data sid op-id op-time)
               :: 'Map 'Tag 'Dynamic
           :examples $ []
           :schema $ :: 'Fn $ {}
             :args $ [] (:: 'Map 'Tag 'Dynamic) 'Dynamic 'Dynamic 'Dynamic 'Dynamic
             :return $ :: 'Map 'Tag 'Dynamic
+          :tests $ [] $ %{} 'TestEntry (:name |checked-create-metadata-and-open-fields)
+            :code $ quote $ let
+                db $ {} (:extra |root-kept)
+                  :sessions $ {} $ 1
+                    {} $ :user-id |u
+                  :users $ {} $ |u
+                    {}
+                      :emotions $ {}
+                      :moods $ {}
+                emotion-op $ :: :emotion/create-one $ {} (:score |3) (:text |new) (:extra |entry-kept)
+                mood-op $ :: :mood/create-one $ {} (:text |mood) (:extra |mood-kept)
+                created $ updater db emotion-op 1 |e 100
+                logged $ updater db mood-op 1 |m 200
+              assert= (Option :some 3)
+                get-in created $ [] :users |u :emotions |e :score
+              assert= (Option :some |entry-kept)
+                get-in created $ [] :users |u :emotions |e :extra
+              assert= (Option :some |root-kept) (get created :extra)
+              assert=
+                Option :some $ merge app.schema/mood $ {} (:id |m) (:time 200) (:text |mood) (:extra |mood-kept)
+                get-in logged $ [] :users |u :moods |m
+              calcit.test/is-throws $ updater db emotion-op |bad-sid |e 100
+              calcit.test/is-throws $ updater db mood-op 1 42 100
+              calcit.test/is-throws $ updater db mood-op 1 |m |bad-time
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater
           :require (app.updater.session :as session) (app.updater.user :as user) (app.updater.router :as router) (app.schema :as schema)
@@ -1308,8 +1336,8 @@
                           assoc emotion :score $ app.schema/as-score $ app.schema/read-field emotion :score
           :examples $ []
           :schema $ :: 'Fn $ {}
-            :args $ [] (:: 'Map 'Dynamic 'Dynamic) (:: 'Map 'Dynamic 'Dynamic) 'Dynamic 'Dynamic 'Dynamic
-            :return $ :: 'Map 'Dynamic 'Dynamic
+            :args $ [] (:: 'Map 'Tag 'Dynamic) (:: 'Map 'Tag 'Dynamic) 'Number 'String 'Number
+            :return $ :: 'Map 'Tag 'Dynamic
           :tests $ [] $ %{} 'TestEntry (:name |legacy-score-partial-edit)
             :code $ quote $ let
                 db $ {} (:extra |root-kept)
@@ -1361,8 +1389,8 @@
                   {} (:id op-id) (:time op-time)
           :examples $ []
           :schema $ :: 'Fn $ {}
-            :args $ [] (:: 'Map 'Dynamic 'Dynamic) (:: 'Map 'Dynamic 'Dynamic) 'Dynamic 'Dynamic 'Dynamic
-            :return $ :: 'Map 'Dynamic 'Dynamic
+            :args $ [] (:: 'Map 'Tag 'Dynamic) (:: 'Map 'Tag 'Dynamic) 'Number 'String 'Number
+            :return $ :: 'Map 'Tag 'Dynamic
         'remove-one $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn remove-one (db op-data sid op-id op-time)
             let
