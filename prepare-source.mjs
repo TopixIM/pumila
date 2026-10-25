@@ -70,9 +70,9 @@ if(process.argv[2]==='apply'){
 assert.deepEqual(views(),expected);assert.equal(blob(),readFileSync('acceptance/modified-blob.txt','utf8'));
 for(const[f,s]of Object.entries(p.reviewedManifests))assert.equal(readFileSync(f,'utf8'),s);
 const oldLock=p.originalManifests['yarn.lock'],newLock=readFileSync('yarn.lock','utf8');
-const nonRuntime=s=>s.replace(/^"(?:@calcit\/(?:procs|finger-vec)|@cirru\/parser\.ts)@[^\n]+":\n(?:  .*\n|\n)*?(?=\S|$)/gm,'').replace(/"@calcit\/procs": "npm:[^"]+"/g,'"@calcit/procs": "npm:RUNTIME"');
-assert.equal(nonRuntime(newLock),nonRuntime(oldLock));
-assert.match(newLock,/"@calcit\/procs@npm:0\.30\.1":/);assert.match(newLock,/"@calcit\/finger-vec@npm:0\.1\.1":/);assert.match(newLock,/"@cirru\/parser\.ts@npm:0\.0\.10":/);
+const nonRuntime=s=>s.replace(/^"(?:@calcit\/(?:procs|finger-vec)|@cirru\/parser\.ts)@[^\n]+":\n(?:  [^\n]*\n|\n)*/gm,'').replace(/"@calcit\/procs": "npm:[^"]+"/g,'"@calcit/procs": "npm:RUNTIME"');
 writeFileSync('acceptance/lock-diff.txt',run('git',['diff','--text','--','yarn.lock']));
+assert.ok(nonRuntime(newLock)===nonRuntime(oldLock),'unexpected non-runtime lock changes; inspect acceptance/lock-diff.txt');
+assert.match(newLock,/"@calcit\/procs@npm:0\.30\.1":/);assert.match(newLock,/"@calcit\/finger-vec@npm:0\.1\.1":/);assert.match(newLock,/"@cirru\/parser\.ts@npm:0\.0\.10":/);
 run('git',['diff','--exit-code',p.base,'--','.github/workflows/upload.yaml','README.md']);
 writeFileSync('acceptance/source-evidence.json',JSON.stringify({beforeBlob:p.blob,afterBlob:blob(),definitions:82,namespaces:24,changes,operationCount:operations.length,fullSourceViewsMatch:true,retiredUnusedLilac:true,manifestsUnchanged:true,runtimeOnlyLock:true}));
