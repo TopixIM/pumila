@@ -31,7 +31,7 @@ function migrate(node,id){
   assert.equal(node.length,3);node[0]='decode-map-as';changes.push({id,kind:'checked-assertion'});
  }
  if(node.length===2&&node[1]==='config/site'&&node[0].startsWith?.(':')){
-  const key=node[0];assert.ok([':storage-key',':storage-file',':port'].includes(key),'unreviewed config field '+key);
+  const key=node[0];assert.ok([':storage-key',':storage-file',':port',':icon'].includes(key),'unreviewed config field '+key);
   node=key===':storage-key'?['decode-map-as',['.unwrap',['get','config/site',key]],"'String"]:['get','config/site',key];
   changes.push({id,kind:'explicit-config-map-lookup',key});
  }
