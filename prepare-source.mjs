@@ -36,8 +36,9 @@ function migrate(node,id){
  if(!Array.isArray(node)||['quote','quasiquote',';','comment','defmacro'].includes(node[0]))return node;
  node=node.map(x=>migrate(x,id));
  if(node[0]==='some?'){
-  assert.ok(['app.comp.emotion-form/comp-emotion-form','app.twig.container/twig-container'].includes(id));
-  assert.equal(node[1][0],'app.schema/read-field');node[0]='non-nil?';
+  if(id==='app.client/reload!')assert.ok(['client-errors','server-errors'].includes(node[1]));
+  else {assert.ok(['app.comp.emotion-form/comp-emotion-form','app.twig.container/twig-container'].includes(id));assert.equal(node[1][0],'app.schema/read-field');}
+  node[0]='non-nil?';
   changes.push({id,kind:'raw-nil-predicate'});
  }
  if(node[0]==='%::'&&node[1]==='MapEntryDecision'){
