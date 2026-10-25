@@ -132,7 +132,7 @@ function migrate(node,id){
 for(const d of expected.defs){
  const old=structuredClone(d.code);d.code=migrate(d.code,d.id);
  if(d.id==='app.updater/updater')d.code[3]=checked(d.code[3],mapType("'Tag"));
- if(d.id==='app.client/dispatch!')d.code.push('&unit');
+ if(d.id==='app.client/dispatch!')d.code[4]=['do',d.code[4],'&unit'];
  queueCode(old,d.code,d.id);
  if(mapDefs.has(d.id)||d.id==='app.server/as-change-list'){
   const before=JSON.stringify(d.schema);assert.equal(d.schema[0],'{}');d.schema=d.schema.filter(x=>!Array.isArray(x)||x[0]!==':features');
