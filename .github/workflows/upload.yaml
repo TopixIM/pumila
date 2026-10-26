@@ -53,11 +53,10 @@ jobs:
         test ! -e compact.cirru
         test ! -e package.cirru
         calcit calcit.cirru fix --workflow strict --verify --format edn
-        calcit calcit.cirru edit format
-        git diff --exit-code -- calcit.cirru
+        calcit calcit.cirru edit transaction --code '[["edit","format"]]' --dry-run --format json | jq -e '.changed == false'
         calcit calcit.cirru --check-only
         calcit calcit.cirru --entry server --check-only
-        for target in app.schema/as-score app.updater.emotion/create-one app.twig.container/twig-members app.server/as-change-list; do
+        for target in app.schema/as-score app.updater.emotion/create-one app.twig.container/twig-members app.server/as-change-list app.updater/updater; do
           calcit --entry server test "$target" --require-match
         done
         calcit analyze check-public --ns app.client --ns app.comp.container --ns app.comp.dashboard --ns app.comp.emotion-form --ns app.comp.emotions --ns app.comp.history --ns app.comp.kit --ns app.comp.login --ns app.comp.navigation --ns app.comp.profile --ns app.config --ns app.schema --ns app.style
