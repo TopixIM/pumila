@@ -12,15 +12,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@calcit/procs@npm:0.30.1":
-  version: 0.30.1
-  resolution: "@calcit/procs@npm:0.30.1"
+"@calcit/procs@npm:0.38.0":
+  version: 0.38.0
+  resolution: "@calcit/procs@npm:0.38.0"
   dependencies:
     "@calcit/finger-vec": "npm:0.1.1"
     "@calcit/ternary-tree": "npm:0.0.26"
     "@cirru/parser.ts": "npm:0.0.10"
     "@cirru/writer.ts": "npm:^0.1.9"
-  checksum: 10c0/a0f00e3c0c9b3a5a2aea8b97e09f2692aa25039a48a2f7ccb345801fdbc546cbf3bb34ee268a58526baba9fb697781bb7929a5d1f6622816c9422c6c3ba8537b
+  checksum: 10c0/8d1910cc739b1b23b5d5b549fb519053b2a578ab05f11814d28c09fbf4c18be5d3a14f52ff3b9bea4c9a3a42ab79d56a59021cd533d68ecc5e26e61da1e347ba
   languageName: node
   linkType: hard
 
@@ -612,29 +612,14 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "pumila@workspace:."
   dependencies:
-    "@calcit/procs": "npm:0.30.1"
+    "@calcit/procs": "npm:0.38.0"
     bottom-tip: "npm:^0.1.5"
     dayjs: "npm:^1.11.18"
     feather-icons: "npm:^4.29.2"
     shortid: "npm:^2.2.17"
-    url-parse: "npm:^1.5.10"
     vite: "npm:^8.2.4"
   languageName: unknown
   linkType: soft
-
-"querystringify@npm:^2.1.1":
-  version: 2.2.0
-  resolution: "querystringify@npm:2.2.0"
-  checksum: 10c0/3258bc3dbdf322ff2663619afe5947c7926a6ef5fb78ad7d384602974c467fadfc8272af44f5eb8cddd0d011aae8fabf3a929a8eee4b86edcc0a21e6bd10f9aa
-  languageName: node
-  linkType: hard
-
-"requires-port@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "requires-port@npm:1.0.0"
-  checksum: 10c0/b2bfdd09db16c082c4326e573a82c0771daaf7b53b9ce8ad60ea46aa6e30aaf475fe9b164800b89f93b748d2c234d8abff945d2551ba47bf5698e04cd7713267
-  languageName: node
-  linkType: hard
 
 "rolldown@npm:~1.2.4":
   version: 1.2.14
@@ -753,16 +738,6 @@ __metadata:
   version: 8.12.3
   resolution: "undici@npm:8.12.3"
   checksum: 10c0/714919e62b4160eea195fb35c7f5c4907235741e47bfde8a014ac58f6d24df13434e23400d7f48e2c455fd2b259d27f07fce514f04a5b4e99936ba62cbc4bb71
-  languageName: node
-  linkType: hard
-
-"url-parse@npm:^1.5.10":
-  version: 1.5.10
-  resolution: "url-parse@npm:1.5.10"
-  dependencies:
-    querystringify: "npm:^2.1.1"
-    requires-port: "npm:^1.0.0"
-  checksum: 10c0/bd5aa9389f896974beb851c112f63b466505a04b4807cea2e5a3b7092f6fbb75316f0491ea84e44f66fed55f1b440df5195d7e3a8203f64fcefa19d182f5be87
   languageName: node
   linkType: hard
 
