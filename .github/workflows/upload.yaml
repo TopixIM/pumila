@@ -27,7 +27,7 @@ jobs:
         node-version: 24
         package-manager-cache: false
 
-    - uses: calcit-lang/setup-calcit@ca701be5a471759e442aa053cd100720bbe1f09f # v1.5.0
+    - uses: calcit-lang/setup-calcit@4a5130ea981278fd4f624f2c2cf64e6776742c01 # v1.5.1
       with:
         deps-file: deps.cirru
         tools: calcit,caps
@@ -59,8 +59,8 @@ jobs:
         for target in app.schema/as-score app.updater.emotion/create-one app.twig.container/twig-members app.server/as-change-list app.updater/updater; do
           calcit --entry server test "$target" --require-match
         done
-        calcit analyze check-public --ns app.client --ns app.comp.container --ns app.comp.dashboard --ns app.comp.emotion-form --ns app.comp.emotions --ns app.comp.history --ns app.comp.kit --ns app.comp.login --ns app.comp.navigation --ns app.comp.profile --ns app.config --ns app.schema --ns app.style
-        calcit --entry server analyze check-public --ns 'app.$meta' --ns app.config --ns app.schema --ns app.server --ns app.twig.container --ns app.twig.user --ns app.updater --ns app.updater.emotion --ns app.updater.mood --ns app.updater.router --ns app.updater.session --ns app.updater.user
+        calcit --check-only --ns app.client --ns app.comp.container --ns app.comp.dashboard --ns app.comp.emotion-form --ns app.comp.emotions --ns app.comp.history --ns app.comp.kit --ns app.comp.login --ns app.comp.navigation --ns app.comp.profile --ns app.config --ns app.schema --ns app.style
+        calcit --entry server --check-only --ns 'app.$meta' --ns app.config --ns app.schema --ns app.server --ns app.twig.container --ns app.twig.user --ns app.updater --ns app.updater.emotion --ns app.updater.mood --ns app.updater.router --ns app.updater.session --ns app.updater.user
 
     - name: Build client with CDN asset URLs
       id: asset-path
@@ -122,7 +122,7 @@ jobs:
     - name: Upload static assets to COS
       if: steps.cos-credentials.outputs.available == 'true'
       timeout-minutes: 10
-      uses: worktools/cos-upload-action@06d6027dcca6413c5936e04a9b6e9f0d5ef71ba0 # v1.2.0
+      uses: worktools/cos-upload-action@8c4f3d09a4478b0d4c8698ffb94759b41831cba8 # v1.3.0
       with:
         source-dir: dist
         bucket: ${{ secrets.COS_BUCKET }}
