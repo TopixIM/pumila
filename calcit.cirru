@@ -197,7 +197,7 @@
                       hint-fn $ Fn (Map Tag Dynamic)
                         Fn AnyEnum $ -> Unit
                         -> Unit
-                      d! $ app.schema/RemoteOp :session/remove-message $ decode-map-as info (Map Tag Dynamic)
+                      d! $ app.schema/RemoteOp :session/remove-message $ decode-map-as (app.schema/read-field info :id) 'String
                       , &unit
                   ; when dev? $ comp-reel (:reel-length store)
                     {} (:bottom 100) (:background-color :white)
@@ -888,11 +888,7 @@
           :examples $ []
           :schema $ quote EnumDef
         'RemoteOp $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defenum RemoteOp
-            :session/remove-message $ Map Tag Dynamic
-            :user/log-in app.schema/Credentials
-            :user/sign-up app.schema/Credentials
-            :user/log-out
+          :code $ quote $ defenum RemoteOp (:session/remove-message String) (:user/log-in app.schema/Credentials) (:user/sign-up app.schema/Credentials) (:user/log-out)
             :router/change $ Map Tag Dynamic
             :emotion/create-one $ Map Tag Dynamic
             :emotion/remove-one String
@@ -984,7 +980,11 @@
               (:session/connect) (app.schema/ConnectionOp :session/connect)
               (:session/disconnect) (app.schema/ConnectionOp :session/disconnect)
               (:session/remove-message value)
-                app.schema/RemoteOp :session/remove-message $ decode-map-as value $ Map Tag Dynamic
+                app.schema/RemoteOp :session/remove-message $ decode-map-as
+                  read-field
+                    decode-map-as value $ Map Tag Dynamic
+                    , :id
+                  , 'String
               (:user/log-in value)
                 app.schema/RemoteOp :user/log-in $ decode-credentials value
               (:user/sign-up value)
@@ -1060,7 +1060,8 @@
         'remote-op-to-wire $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn remote-op-to-wire (op)
             match op
-              (:session/remove-message value) (:: :session/remove-message value)
+              (:session/remove-message id)
+                :: :session/remove-message $ {} $ :id id
               (:user/log-in credentials)
                 :: :user/log-in $ [] (:username credentials) (:password credentials)
               (:user/sign-up credentials)
@@ -1405,7 +1406,8 @@
                     (:session/disconnect) (session/disconnect db sid op-id op-time)
                 (app.schema/RemoteOp action)
                   match action
-                    (:session/remove-message op-data) (session/remove-message db op-data sid op-id op-time)
+                    (:session/remove-message id)
+                      session/remove-message db id $ decode-map-as sid 'Number
                     (:user/log-in op-data) (user/log-in db op-data sid op-id op-time)
                     (:user/sign-up op-data) (user/sign-up db op-data sid op-id op-time)
                     (:user/log-out) (user/log-out db nil sid op-id op-time)
@@ -1466,6 +1468,19 @@
                   , log-in
                 assert= (Result :ok |fixture-id)
                   get-in logged-in $ [] :sessions 2 :user-id
+            %{} 'TestEntry (:name |legacy-dismiss-message-wire)
+              :code $ quote $ let
+                  db $ {} $ :sessions
+                    {} $ 1 $ {}
+                      :messages $ {} (|dismissed |old) (|kept |other)
+                  wire $ :: :session/remove-message $ {} (:id |dismissed) (:index 0) (:time 100)
+                  updated $ updater db (app.schema/decode-server-op wire) 1 |dismiss 101
+                assert=
+                  :: :session/remove-message $ {} $ :id |dismissed
+                  app.schema/remote-op-to-wire $ app.schema/RemoteOp :session/remove-message |dismissed
+                assert=
+                  Result :ok $ {} $ |kept |other
+                  get-in updated $ [] :sessions 1 :messages
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater
           :require (app.updater.session :as session) (app.updater.user :as user) (app.updater.router :as router) (app.schema :as schema)
@@ -1595,15 +1610,15 @@
           :schema $ quote $ Fn (Map Dynamic Dynamic) Dynamic Dynamic Dynamic
             -> $ Map Dynamic Dynamic
         'remove-message $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn remove-message (db op-data sid op-id op-time)
+          :code $ quote $ defn remove-message (db id sid)
             update-in db ([] :sessions sid :messages)
               fn (messages-option)
                 dissoc
                   .unwrap-or messages-option $ {}
-                  app.schema/read-field op-data :id
+                  , id
           :examples $ []
-          :schema $ quote $ Fn (Map Dynamic Dynamic) Dynamic Dynamic Dynamic Dynamic
-            -> $ Map Dynamic Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) String Number
+            -> $ Map Tag Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater.session
           :require $ app.schema :as schema
