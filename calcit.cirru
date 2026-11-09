@@ -397,13 +397,11 @@
                     hint-fn $ Fn respo.schema/RespoEvent
                       Fn AnyEnum $ -> Unit
                       -> Unit
-                    on-pick color d!
+                    d! $ on-pick color
                     , &unit
           :examples $ []
           :schema $ quote $ Fn
-            Fn String
-              Fn AnyEnum $ -> Unit
-              -> Unit
+            Fn String $ -> app.schema/LocalOp
             -> respo.schema/Component
         'comp-emotion-form $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-emotion-form (states data)
@@ -440,8 +438,8 @@
                         decode-map-as cursor $ List respo.schema/CoordKey
                         assoc form :color $ respo.core/event-value e
                   space-y 8
-                  comp-color-picker $ fn (color d!)
-                    d! $ app.schema/LocalOp :states
+                  comp-color-picker $ fn (color)
+                    app.schema/LocalOp :states
                       decode-map-as cursor $ List respo.schema/CoordKey
                       assoc form :color color
                 space-y 16
@@ -484,7 +482,7 @@
                       :inner-text $ if editing? |Save |Create
                 .render delete-plugin
           :examples $ []
-          :schema $ quote $ Fn Dynamic Dynamic (-> Dynamic)
+          :schema $ quote $ Fn Dynamic Dynamic (-> respo.schema/Component)
         'default-colors $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def default-colors
             [] |#ff9e96 |#e7e5e5 |#baf9c2 |#c6ded2 |#5facf6 |#c390e8 |#ffdd57 |#f79800 |#cf0027
@@ -1411,7 +1409,8 @@
                     (:user/log-in op-data) (user/log-in db op-data sid op-id op-time)
                     (:user/sign-up op-data) (user/sign-up db op-data sid op-id op-time)
                     (:user/log-out) (user/log-out db nil sid op-id op-time)
-                    (:router/change op-data) (router/change db op-data sid op-id op-time)
+                    (:router/change op-data)
+                      router/change db op-data $ decode-map-as sid Number
                     (:emotion/create-one op-data)
                       emotion/create-one db op-data (decode-map-as sid 'Number) (decode-map-as op-id 'String) (decode-map-as op-time 'Number)
                     (:emotion/remove-one op-data) (emotion/remove-one db op-data sid op-id op-time)
@@ -1573,11 +1572,11 @@
     'app.updater.router $ %{} 'FileEntry
       :defs $ {} $ 'change
         %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn change (db op-data sid op-id op-time)
+          :code $ quote $ defn change (db op-data sid)
             assoc-in db ([] :sessions sid :router) op-data
           :examples $ []
-          :schema $ quote $ Fn (Map Dynamic Dynamic) (Map Dynamic Dynamic) Dynamic Dynamic Dynamic
-            -> $ Map Dynamic Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) (Map Tag Dynamic) Number
+            -> $ Map Tag Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater.router
     'app.updater.session $ %{} 'FileEntry
