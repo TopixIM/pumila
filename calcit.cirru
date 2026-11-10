@@ -1404,16 +1404,36 @@
                   (:session/connect) (session/connect db sid)
                   (:session/disconnect) (session/disconnect db sid)
               (app.schema/RemoteOp action)
-                match action
-                  (:session/remove-message id) (session/remove-message db id sid)
-                  (:user/log-in op-data) (user/log-in db op-data sid op-id)
-                  (:user/sign-up op-data) (user/sign-up db op-data sid op-id)
-                  (:user/log-out) (user/log-out db sid)
-                  (:router/change op-data) (router/change db op-data sid)
-                  (:emotion/create-one op-data) (emotion/create-one db op-data sid op-id op-time)
-                  (:emotion/remove-one op-data) (emotion/remove-one db op-data sid)
-                  (:mood/create-one op-data) (mood/create-one db op-data sid op-id op-time)
-                  (:mood/remove-one op-data) (mood/remove-one db op-data sid)
+                let
+                    with-user $ fn (apply!)
+                      hint-fn $ Fn
+                        Fn String $ -> $ Map Tag Dynamic
+                        -> $ Map Tag Dynamic
+                      match
+                        app.schema/lookup-path db $ [] :sessions sid :user-id
+                        (:some raw-id)
+                          match (data-view raw-id)
+                            (:string id)
+                              if
+                                .some? $ app.schema/lookup-path db $ [] :users id
+                                apply! id
+                                , db
+                            _ db
+                        (:none) db
+                  match action
+                    (:session/remove-message id) (session/remove-message db id sid)
+                    (:user/log-in op-data) (user/log-in db op-data sid op-id)
+                    (:user/sign-up op-data) (user/sign-up db op-data sid op-id)
+                    (:user/log-out) (user/log-out db sid)
+                    (:router/change op-data) (router/change db op-data sid)
+                    (:emotion/create-one op-data)
+                      with-user $ fn (user-id) (emotion/create-one db op-data user-id op-id op-time)
+                    (:emotion/remove-one op-data)
+                      with-user $ fn (user-id) (emotion/remove-one db op-data user-id)
+                    (:mood/create-one op-data)
+                      with-user $ fn (user-id) (mood/create-one db op-data user-id op-id op-time)
+                    (:mood/remove-one op-data)
+                      with-user $ fn (user-id) (mood/remove-one db op-data user-id)
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic) app.schema/ServerOp Number String Number
             -> $ Map Tag Dynamic
@@ -1472,6 +1492,14 @@
                 assert=
                   Result :ok $ {} $ |kept |other
                   get-in updated $ [] :sessions 1 :messages
+            %{} 'TestEntry (:name |guest-entry-writes-leave-store-untouched)
+              :code $ quote $ let
+                  db $ updater app.schema/database (app.schema/ConnectionOp :session/connect) 42 |connect 0
+                  draft $ {} (:text |guest-fixture) (:score 1)
+                assert= db $ updater db (app.schema/RemoteOp :emotion/create-one draft) 42 |create 1
+                assert= db $ updater db (app.schema/RemoteOp :emotion/remove-one |unknown) 42 |remove 2
+                assert= db $ updater db (app.schema/RemoteOp :mood/create-one draft) 42 |create 3
+                assert= db $ updater db (app.schema/RemoteOp :mood/remove-one |unknown) 42 |remove 4
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater
           :require (app.updater.session :as session) (app.updater.user :as user) (app.updater.router :as router) (app.schema :as schema)
@@ -1481,30 +1509,26 @@
     'app.updater.emotion $ %{} 'FileEntry
       :defs $ {}
         'create-one $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn create-one (db op-data sid op-id op-time)
-            let
-                user-id $
-                  get-in db $ [] :sessions sid :user-id
-                  , .unwrap-or nil
-              update-in db ([] :users user-id :emotions)
-                fn (emotions-option)
-                  let
-                      emotions $ .unwrap-or emotions-option $ {}
-                    match (get op-data :id)
-                      (:some id)
-                        update emotions id $ fn (emotion-option)
-                          let
-                              emotion $ merge
-                                .unwrap-or (app.schema/as-map-option emotion-option) (app.schema/as-style schema/emotion)
-                                app.schema/as-style op-data
-                            assoc emotion :score $ app.schema/as-score $ app.schema/read-field emotion :score
-                      (:none)
-                        assoc emotions op-id $ let
-                            emotion $ merge (app.schema/as-style schema/emotion) (app.schema/as-style op-data)
-                              {} $ :id op-id
+          :code $ quote $ defn create-one (db op-data user-id op-id op-time)
+            update-in db ([] :users user-id :emotions)
+              fn (emotions-option)
+                let
+                    emotions $ .unwrap-or emotions-option $ {}
+                  match (get op-data :id)
+                    (:some id)
+                      update emotions id $ fn (emotion-option)
+                        let
+                            emotion $ merge
+                              .unwrap-or (app.schema/as-map-option emotion-option) (app.schema/as-style schema/emotion)
+                              app.schema/as-style op-data
                           assoc emotion :score $ app.schema/as-score $ app.schema/read-field emotion :score
+                    (:none)
+                      assoc emotions op-id $ let
+                          emotion $ merge (app.schema/as-style schema/emotion) (app.schema/as-style op-data)
+                            {} $ :id op-id
+                        assoc emotion :score $ app.schema/as-score $ app.schema/read-field emotion :score
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) (Map Tag Dynamic) Number String Number
+          :schema $ quote $ Fn (Map Tag Dynamic) (Map Tag Dynamic) String String Number
             -> $ Map Tag Dynamic
           :tests $ [] $ %{} 'TestEntry (:name |legacy-score-partial-edit)
             :code $ quote $ let
@@ -1516,10 +1540,10 @@
                       |e $ {} (:id |e) (:score |2.5) (:text |old) (:extra |entry-kept)
                 edited $ create-one db
                   {} (:id |e) (:text |updated)
-                  , 1 |op 100
+                  , |u |op 100
                 created $ create-one db
                   {} (:score |3) (:text |new)
-                  , 1 |new 100
+                  , |u |new 100
               assert=
                 assoc-in db ([] :users |u :emotions |e)
                   {} (:id |e) (:score 2.5) (:text |updated) (:extra |entry-kept)
@@ -1528,18 +1552,14 @@
                 get-in created $ [] :users |u :emotions |new :score
               assert= |root-kept $ .unwrap $ get created :extra
         'remove-one $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn remove-one (db id sid)
-            let
-                user-id $
-                  get-in db $ [] :sessions sid :user-id
-                  , .unwrap-or nil
-              update-in db ([] :users user-id :emotions)
-                fn (emotions-option)
-                  dissoc
-                    .unwrap-or emotions-option $ {}
-                    , id
+          :code $ quote $ defn remove-one (db id user-id)
+            update-in db ([] :users user-id :emotions)
+              fn (emotions-option)
+                dissoc
+                  .unwrap-or emotions-option $ {}
+                  , id
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) String Number
+          :schema $ quote $ Fn (Map Tag Dynamic) String String
             -> $ Map Tag Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater.emotion
@@ -1547,30 +1567,22 @@
     'app.updater.mood $ %{} 'FileEntry
       :defs $ {}
         'create-one $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn create-one (db op-data sid op-id op-time)
-            let
-                user-id $
-                  get-in db $ [] :sessions sid :user-id
-                  , .unwrap-or nil
-              assoc-in db ([] :users user-id :moods op-id)
-                merge (app.schema/as-style schema/mood) (app.schema/as-style op-data)
-                  {} (:id op-id) (:time op-time)
+          :code $ quote $ defn create-one (db op-data user-id op-id op-time)
+            assoc-in db ([] :users user-id :moods op-id)
+              merge (app.schema/as-style schema/mood) (app.schema/as-style op-data)
+                {} (:id op-id) (:time op-time)
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) (Map Tag Dynamic) Number String Number
+          :schema $ quote $ Fn (Map Tag Dynamic) (Map Tag Dynamic) String String Number
             -> $ Map Tag Dynamic
         'remove-one $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn remove-one (db id sid)
-            let
-                user-id $
-                  get-in db $ [] :sessions sid :user-id
-                  , .unwrap-or nil
-              update-in db ([] :users user-id :moods)
-                fn (moods-option)
-                  dissoc
-                    .unwrap-or moods-option $ {}
-                    , id
+          :code $ quote $ defn remove-one (db id user-id)
+            update-in db ([] :users user-id :moods)
+              fn (moods-option)
+                dissoc
+                  .unwrap-or moods-option $ {}
+                  , id
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) String Number
+          :schema $ quote $ Fn (Map Tag Dynamic) String String
             -> $ Map Tag Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater.mood
