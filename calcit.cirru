@@ -1406,22 +1406,18 @@
                     (:session/disconnect) (session/disconnect db sid op-id op-time)
                 (app.schema/RemoteOp action)
                   match action
-                    (:session/remove-message id)
-                      session/remove-message db id $ decode-map-as sid 'Number
+                    (:session/remove-message id) (session/remove-message db id sid)
                     (:user/log-in op-data) (user/log-in db op-data sid op-id op-time)
                     (:user/sign-up op-data) (user/sign-up db op-data sid op-id op-time)
                     (:user/log-out) (user/log-out db nil sid op-id op-time)
-                    (:router/change op-data)
-                      router/change db op-data $ decode-map-as sid Number
-                    (:emotion/create-one op-data)
-                      emotion/create-one db op-data (decode-map-as sid 'Number) (decode-map-as op-id 'String) (decode-map-as op-time 'Number)
+                    (:router/change op-data) (router/change db op-data sid)
+                    (:emotion/create-one op-data) (emotion/create-one db op-data sid op-id op-time)
                     (:emotion/remove-one op-data) (emotion/remove-one db op-data sid op-id op-time)
-                    (:mood/create-one op-data)
-                      mood/create-one db op-data (decode-map-as sid 'Number) (decode-map-as op-id 'String) (decode-map-as op-time 'Number)
+                    (:mood/create-one op-data) (mood/create-one db op-data sid op-id op-time)
                     (:mood/remove-one op-data) (mood/remove-one db op-data sid op-id op-time)
               Map Tag Dynamic
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) app.schema/ServerOp Dynamic Dynamic Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) app.schema/ServerOp Number String Number
             -> $ Map Tag Dynamic
           :tests $ []
             %{} 'TestEntry (:name |checked-create-metadata-and-open-fields)
@@ -1447,9 +1443,6 @@
                 assert=
                   Result :ok $ merge app.schema/mood $ {} (:id |m) (:time 200) (:text |mood) (:extra |mood-kept)
                   get-in logged $ [] :users |u :moods |m
-                calcit.test/is-throws $ updater db emotion-op |bad-sid |e 100
-                calcit.test/is-throws $ updater db mood-op 1 42 100
-                calcit.test/is-throws $ updater db mood-op 1 |m |bad-time
             %{} 'TestEntry (:name |legacy-credentials-wire)
               :code $ quote $ let
                   credentials $ app.schema/Credentials :username |fixture-user :password |fixture-password
