@@ -387,15 +387,15 @@
       :defs $ {}
         'comp-color-picker $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-color-picker (on-pick)
-            list-> ({})
+            keyed-> ({})
               -> default-colors $ map $ fn (color)
-                [] color $ div $ {}
+                keyed-element color $ div $ {}
                   :style $ let
                       size 24
                     {} (:background-color color) (:height size) (:width size) (:border-radius |6px) (:display :inline-block) (:margin "|0 8px 8px 0") (:cursor :pointer)
                   :on-click $ fn (e d!)
                     hint-fn $ Fn respo.schema/RespoEvent
-                      Fn AnyEnum $ -> Unit
+                      Fn app.schema/LocalOp $ -> Unit
                       -> Unit
                     d! $ on-pick color
                     , &unit
@@ -494,7 +494,7 @@
             respo-ui.core :refer $ hsl
             respo-ui.core :as ui
             respo.comp.space :refer $ space-x space-y
-            respo.core :refer $ defcomp <> >> list-> span div button input
+            respo.core :refer $ defcomp <> >> keyed-> keyed-element span div button input
             app.config :as config
             app.schema :as schema
             respo-alerts.core :refer $ use-confirm
