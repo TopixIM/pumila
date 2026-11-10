@@ -1398,24 +1398,22 @@
       :defs $ {} $ 'updater
         %{} 'CodeEntry (:doc |)
           :code $ quote $ defn updater (db op sid op-id op-time)
-            decode-map-as
-              match op
-                (app.schema/ConnectionOp event)
-                  match event
-                    (:session/connect) (session/connect db sid op-id op-time)
-                    (:session/disconnect) (session/disconnect db sid op-id op-time)
-                (app.schema/RemoteOp action)
-                  match action
-                    (:session/remove-message id) (session/remove-message db id sid)
-                    (:user/log-in op-data) (user/log-in db op-data sid op-id op-time)
-                    (:user/sign-up op-data) (user/sign-up db op-data sid op-id op-time)
-                    (:user/log-out) (user/log-out db nil sid op-id op-time)
-                    (:router/change op-data) (router/change db op-data sid)
-                    (:emotion/create-one op-data) (emotion/create-one db op-data sid op-id op-time)
-                    (:emotion/remove-one op-data) (emotion/remove-one db op-data sid op-id op-time)
-                    (:mood/create-one op-data) (mood/create-one db op-data sid op-id op-time)
-                    (:mood/remove-one op-data) (mood/remove-one db op-data sid op-id op-time)
-              Map Tag Dynamic
+            match op
+              (app.schema/ConnectionOp event)
+                match event
+                  (:session/connect) (session/connect db sid)
+                  (:session/disconnect) (session/disconnect db sid)
+              (app.schema/RemoteOp action)
+                match action
+                  (:session/remove-message id) (session/remove-message db id sid)
+                  (:user/log-in op-data) (user/log-in db op-data sid op-id)
+                  (:user/sign-up op-data) (user/sign-up db op-data sid op-id)
+                  (:user/log-out) (user/log-out db sid)
+                  (:router/change op-data) (router/change db op-data sid)
+                  (:emotion/create-one op-data) (emotion/create-one db op-data sid op-id op-time)
+                  (:emotion/remove-one op-data) (emotion/remove-one db op-data sid)
+                  (:mood/create-one op-data) (mood/create-one db op-data sid op-id op-time)
+                  (:mood/remove-one op-data) (mood/remove-one db op-data sid)
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic) app.schema/ServerOp Number String Number
             -> $ Map Tag Dynamic
@@ -1530,7 +1528,7 @@
                 get-in created $ [] :users |u :emotions |new :score
               assert= |root-kept $ .unwrap $ get created :extra
         'remove-one $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn remove-one (db op-data sid op-id op-time)
+          :code $ quote $ defn remove-one (db id sid)
             let
                 user-id $
                   get-in db $ [] :sessions sid :user-id
@@ -1539,10 +1537,10 @@
                 fn (emotions-option)
                   dissoc
                     .unwrap-or emotions-option $ {}
-                    , op-data
+                    , id
           :examples $ []
-          :schema $ quote $ Fn (Map Dynamic Dynamic) Dynamic Dynamic Dynamic Dynamic
-            -> $ Map Dynamic Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) String Number
+            -> $ Map Tag Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater.emotion
           :require $ app.schema :as schema
@@ -1561,7 +1559,7 @@
           :schema $ quote $ Fn (Map Tag Dynamic) (Map Tag Dynamic) Number String Number
             -> $ Map Tag Dynamic
         'remove-one $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn remove-one (db op-data sid op-id op-time)
+          :code $ quote $ defn remove-one (db id sid)
             let
                 user-id $
                   get-in db $ [] :sessions sid :user-id
@@ -1570,10 +1568,10 @@
                 fn (moods-option)
                   dissoc
                     .unwrap-or moods-option $ {}
-                    , op-data
+                    , id
           :examples $ []
-          :schema $ quote $ Fn (Map Dynamic Dynamic) Dynamic Dynamic Dynamic Dynamic
-            -> $ Map Dynamic Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) String Number
+            -> $ Map Tag Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater.mood
           :require $ app.schema :as schema
@@ -1590,18 +1588,18 @@
     'app.updater.session $ %{} 'FileEntry
       :defs $ {}
         'connect $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn connect (db sid op-id op-time)
+          :code $ quote $ defn connect (db sid)
             assoc-in db ([] :sessions sid)
               merge schema/session $ {} $ :id sid
           :examples $ []
-          :schema $ quote $ Fn (Map Dynamic Dynamic) Dynamic Dynamic Dynamic
-            -> $ Map Dynamic Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) Number
+            -> $ Map Tag Dynamic
         'disconnect $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn disconnect (db sid op-id op-time)
+          :code $ quote $ defn disconnect (db sid)
             update db :sessions $ fn (session) (dissoc session sid)
           :examples $ []
-          :schema $ quote $ Fn (Map Dynamic Dynamic) Dynamic Dynamic Dynamic
-            -> $ Map Dynamic Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) Number
+            -> $ Map Tag Dynamic
         'remove-message $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn remove-message (db id sid)
             update-in db ([] :sessions sid :messages)
@@ -1618,7 +1616,7 @@
     'app.updater.user $ %{} 'FileEntry
       :defs $ {}
         'log-in $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn log-in (db credentials sid op-id op-time)
+          :code $ quote $ defn log-in (db credentials sid op-id)
             let
                 username $ :username credentials
                 password $ :password credentials
@@ -1643,14 +1641,14 @@
                         assoc session :messages $ assoc (app.schema/read-field session :messages) op-id $ {} (:id op-id)
                           :text $ str "|No user named: " username
           :examples $ []
-          :schema $ quote $ Fn (Map Dynamic Dynamic) app.schema/Credentials Dynamic Dynamic Dynamic
-            -> $ Map Dynamic Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) app.schema/Credentials Number String
+            -> $ Map Tag Dynamic
         'log-out $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn log-out (db op-data sid op-id op-time)
+          :code $ quote $ defn log-out (db sid)
             assoc-in db ([] :sessions sid :user-id) nil
           :examples $ []
-          :schema $ quote $ Fn (Map Dynamic Dynamic) Dynamic Dynamic Dynamic Dynamic
-            -> $ Map Dynamic Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) Number
+            -> $ Map Tag Dynamic
         'reset-mark $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn reset-mark (db op-data sid op-id op-time)
             let
@@ -1660,7 +1658,7 @@
           :schema $ quote $ Fn (Map Dynamic Dynamic) Dynamic Dynamic Dynamic Dynamic
             -> $ Map Dynamic Dynamic
         'sign-up $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn sign-up (db credentials sid op-id op-time)
+          :code $ quote $ defn sign-up (db credentials sid op-id)
             let
                 username $ :username credentials
                 password $ :password credentials
@@ -1686,8 +1684,8 @@
                         :password $ md5 password
                         :avatar nil
           :examples $ []
-          :schema $ quote $ Fn (Map Dynamic Dynamic) app.schema/Credentials Dynamic Dynamic Dynamic
-            -> $ Map Dynamic Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) app.schema/Credentials Number String
+            -> $ Map Tag Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater.user
           :require
