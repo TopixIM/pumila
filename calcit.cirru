@@ -45,7 +45,7 @@
                   :on-close $ fn (event) (reset! *store nil) (js/console.error "|Lost connection!")
                   :on-data on-server-data
           :examples $ []
-          :schema $ quote $ Fn (-> Dynamic) (:features :js-ffi)
+          :schema $ quote $ Fn (-> ws-edn.client/WsClient) (:features :js-ffi)
         'dispatch! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispatch! (op)
             when
@@ -63,13 +63,13 @@
                 ws-send! $ schema/remote-op-to-wire action
             , &unit
           :examples $ []
-          :schema $ quote $ Fn app.schema/UiOp (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn schema/UiOp (-> Unit) (:features :js-ffi)
         'dispatch-from-view! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispatch-from-view! (op)
             cond
-                = (enum-definition op) (Option :some app.schema/LocalOp)
+                = (enum-definition op) (Some app.schema/LocalOp)
                 dispatch! $ decode-map-as op 'app.schema/LocalOp
-              (= (enum-definition op) (Option :some app.schema/RemoteOp))
+              (= (enum-definition op) (Some app.schema/RemoteOp))
                 dispatch! $ decode-map-as op 'app.schema/RemoteOp
               true $ match op
                 (:states cursor state)
@@ -91,8 +91,9 @@
               if (nil? @*store) (connect!)
               , &unit
             println "|App started!"
+            , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Dynamic) (:features :js-ffi)
+          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'mount-target $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn mount-target ()
             .query-selector (js-cast js/document 'respo.dom/DomDocument) |.app
@@ -107,8 +108,9 @@
               do
                 when config/dev? $ js/console.log |Changes changes
                 reset! *store $ patch-twig @*store $ recollect.schema/decode-changes changes
+            , &unit
           :examples $ []
-          :schema $ quote $ Fn Dynamic (-> Dynamic) (:features :js-ffi)
+          :schema $ quote $ Fn Dynamic (-> Unit) (:features :js-ffi)
         'reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn reload! ()
             if
@@ -118,15 +120,16 @@
                 add-watch! *store :changes $ fn (store prev) (render-app!)
                 add-watch! *states :changes $ fn (states prev) (render-app!)
                 println "|Code updated."
+            , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Dynamic) (:features :js-ffi)
+          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'render-app! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-app! ()
             render-with! (mount-target)
               fn () $ comp-container (app.schema/read-field @*states :states) @*store
               , dispatch-from-view!
           :examples $ []
-          :schema $ quote $ Fn (-> Dynamic) (:features :js-ffi)
+          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'simulate-login! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn simulate-login! ()
             let
@@ -138,8 +141,9 @@
                   dispatch! $ app.schema/RemoteOp :user/log-in $ schema/decode-credentials
                     parse-cirru-edn $ js-ffi.contract/expect-string |app.client/simulate-login! raw
                 println "|Found no storage."
+            , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Dynamic) (:features :js-ffi)
+          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'ssr? $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn ssr? ()
             js-present? $ .querySelector (js-cast js/document 'app.client/DocumentHost) |meta.respo-ssr
@@ -186,8 +190,8 @@
                     comp-login states
                   ; comp-status-color $ :color store
                   if dev?
-                    Option :some $ comp-inspect |Store store $ {} (:bottom 20) (:left 0) (:max-width |100%)
-                    Option :none
+                    Some $ comp-inspect |Store store $ {} (:bottom 20) (:left 0) (:max-width |100%)
+                    , None
                   comp-messages
                     app.schema/as-string-map $ ->
                       get-in store $ [] :session :messages
@@ -401,7 +405,7 @@
                     , &unit
           :examples $ []
           :schema $ quote $ Fn
-            Fn String $ -> app.schema/LocalOp
+            Fn String $ -> schema/LocalOp
             -> respo.schema/Component
         'comp-emotion-form $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-emotion-form (states data)
@@ -448,7 +452,7 @@
                   span $ {}
                   span ({})
                     if editing?
-                      Option :some $ button $ {}
+                      Some $ button $ {}
                         :style $ merge ui/button $ {} (:color :white)
                           :background-color $ hsl 10 50 70
                           :border $ hsl 10 50 60
@@ -466,10 +470,10 @@
                                 Map Tag Dynamic
                               d! $ app.schema/RemoteOp :emotion/remove-one $ decode-map-as (app.schema/read-field form :id) 'String
                               , &unit
-                      Option :none
+                      , None
                     if editing?
-                      Option :some $ space-x 8
-                      Option :none
+                      Some $ space-x 8
+                      , None
                     button $ {} (:style ui/button)
                       :on-click $ fn (e d!)
                         d! $ app.schema/RemoteOp :emotion/create-one $ decode-map-as form (Map Tag Dynamic)
@@ -657,18 +661,18 @@
                 <> label
               , child
           :examples $ []
-          :schema $ quote $ Fn String Dynamic (-> Dynamic)
+          :schema $ quote $ Fn String respo.schema/NodeValue (-> respo.schema/Component)
         'comp-hint $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-hint (text)
             <> text $ {} $ :color (hsl 0 0 80)
           :examples $ []
-          :schema $ quote $ Fn String (-> Dynamic)
+          :schema $ quote $ Fn String (-> respo.schema/Component)
         'comp-title $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-title (text)
             <> text $ {} (:font-family ui/font-fancy) (:font-size 24)
               :color $ hsl 0 0 60
           :examples $ []
-          :schema $ quote $ Fn String (-> Dynamic)
+          :schema $ quote $ Fn String (-> respo.schema/Component)
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.comp.kit
           :require
@@ -749,7 +753,7 @@
           :examples $ []
           :schema $ quote $ Fn String String Bool
             -> $ Fn respo.schema/RespoEvent
-              Fn app.schema/UiOp $ -> Unit
+              Fn schema/UiOp $ -> Unit
               -> Unit
               :features :js-ffi
             :features :js-ffi
@@ -973,7 +977,7 @@
                   .unwrap $ nth items 1
                   , 'String
           :examples $ []
-          :schema $ quote $ Fn Dynamic (-> app.schema/Credentials)
+          :schema $ quote $ Fn Dynamic (-> Credentials)
         'decode-server-op $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn decode-server-op (message)
             match message
@@ -1002,7 +1006,7 @@
                 app.schema/RemoteOp :mood/remove-one $ decode-map-as value 'String
               _ $ raise "|Unknown Pumila wire operation"
           :examples $ []
-          :schema $ quote $ Fn AnyEnum (-> app.schema/ServerOp) (:open :reflect)
+          :schema $ quote $ Fn AnyEnum (-> ServerOp) (:open :reflect)
         'edit-route-data $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn edit-route-data (router)
             match (lookup-field router :data)
@@ -1034,10 +1038,10 @@
           :doc "|Retain the legacy wire Option for edit routes and distinguish missing data from a malformed path."
           :code $ quote $ defn lookup-path (value path)
             match (get-in value path)
-              (:ok item) (Option :some item)
+              (:ok item) (Some item)
               (:err error)
                 match error
-                  (:missing) (Option :none)
+                  (:missing) None
                   (:shape message) (raise message)
           :examples $ []
           :schema $ quote $ Fn Dynamic (List Dynamic)
@@ -1073,7 +1077,7 @@
               (:mood/create-one value) (:: :mood/create-one value)
               (:mood/remove-one value) (:: :mood/remove-one value)
           :examples $ []
-          :schema $ quote $ Fn app.schema/RemoteOp (-> AnyEnum) (:open :reflect)
+          :schema $ quote $ Fn RemoteOp (-> AnyEnum) (:open :reflect)
         'router $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def router
             {} (:name nil) (:title nil)
@@ -1157,7 +1161,7 @@
               reset! *reel $ reel-reducer @*reel updater op sid op-id op-time config/dev?
               , &unit
           :examples $ []
-          :schema $ quote $ Fn app.schema/ServerOp Number (-> Unit)
+          :schema $ quote $ Fn schema/ServerOp Number (-> Unit)
         'get-backup-path! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn get-backup-path! ()
             let
@@ -1435,7 +1439,7 @@
                     (:mood/remove-one op-data)
                       with-user $ fn (user-id) (mood/remove-one db op-data user-id)
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) app.schema/ServerOp Number String Number
+          :schema $ quote $ Fn (Map Tag Dynamic) schema/ServerOp Number String Number
             -> $ Map Tag Dynamic
           :tests $ []
             %{} 'TestEntry (:name |checked-create-metadata-and-open-fields)
@@ -1457,7 +1461,7 @@
                   get-in created $ [] :users |u :emotions |e :score
                 assert= (Result :ok |entry-kept)
                   get-in created $ [] :users |u :emotions |e :extra
-                assert= (Option :some |root-kept) (get created :extra)
+                assert= (Some |root-kept) (get created :extra)
                 assert=
                   Result :ok $ merge app.schema/mood $ {} (:id |m) (:time 200) (:text |mood) (:extra |mood-kept)
                   get-in logged $ [] :users |u :moods |m
@@ -1653,7 +1657,7 @@
                         assoc session :messages $ assoc (app.schema/read-field session :messages) op-id $ {} (:id op-id)
                           :text $ str "|No user named: " username
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) app.schema/Credentials Number String
+          :schema $ quote $ Fn (Map Tag Dynamic) schema/Credentials Number String
             -> $ Map Tag Dynamic
         'log-out $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn log-out (db sid)
@@ -1696,7 +1700,7 @@
                         :password $ md5 password
                         :avatar nil
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) app.schema/Credentials Number String
+          :schema $ quote $ Fn (Map Tag Dynamic) schema/Credentials Number String
             -> $ Map Tag Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater.user
