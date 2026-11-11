@@ -1263,17 +1263,17 @@
             wss-each! $ fn (sid)
               let
                   db $ :db reel
-                  records $ :records reel
+                  reel-length $ .len $ :records reel
                   session $
                     get-in db $ [] :sessions sid
                     , .unwrap-or schema/session
-                  new-store $ twig-container db session records
+                  new-store $ twig-container db session reel-length
                   changes $ match (get @*client-caches sid)
                     (:some old-store)
                       diff-twig old-store new-store $ {} $ :key :id
                     (:none)
                       diff-twig nil new-store $ {} $ :key :id
-                ; when config/dev? $ println "|Changes for" sid |: changes $ count records
+                ; when config/dev? $ println "|Changes for" sid |: changes reel-length
                 if
                   not $ empty? changes
                   do
@@ -1316,12 +1316,11 @@
     'app.twig.container $ %{} 'FileEntry
       :defs $ {}
         'twig-container $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn twig-container (db session records)
+          :code $ quote $ defn twig-container (db session reel-length)
             let
                 logged-in? $ .some? $ app.schema/lookup-field session :user-id
                 router $ .unwrap-or (app.schema/lookup-field session :router) ({})
-                base-data $ {} (:logged-in? logged-in?) (:session session)
-                  :reel-length $ .len records
+                base-data $ {} (:logged-in? logged-in?) (:session session) (:reel-length reel-length)
               merge base-data $ app.schema/as-style $ if logged-in?
                 let
                     user $ ->
@@ -1360,8 +1359,7 @@
                     :color $ rand-hex-color!
                 {}
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) Dynamic
-            List $ List Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) Dynamic Number
             -> $ Map Tag Dynamic
         'twig-members $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn twig-members (sessions users)
