@@ -900,6 +900,10 @@
             :mood/remove-one String
           :examples $ []
           :schema $ quote EnumDef
+        'ScoreInput $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion ScoreInput Number String
+          :examples $ []
+          :schema $ quote UnionDef
         'ServerOp $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defunion ServerOp app.schema/RemoteOp app.schema/ConnectionOp
           :examples $ []
@@ -928,14 +932,18 @@
             -> $ Option $ Map Tag Dynamic
         'as-score $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn as-score (value)
-            if (number? value) value $ if (string? value)
-              match (parse-float value)
-                (:ok score) score
-                (:err message)
-                  raise $ str "|Invalid emotion score: " message
-              raise "|Emotion score must be Number or numeric String"
+            match (try-decode-map-as value app.schema/ScoreInput)
+              (:ok input)
+                match input
+                  (Number score) score
+                  (String text)
+                    match (parse-float text)
+                      (:ok score) score
+                      (:err message)
+                        raise $ str "|Invalid emotion score: " message
+              (:err _) (raise "|Emotion score must be Number or numeric String")
           :examples $ []
-          :schema $ quote $ Fn Dynamic (-> Number)
+          :schema $ quote $ Fn T (-> Number) (:generics T)
           :tests $ [] $ %{} 'TestEntry (:name |legacy-score-boundary)
             :code $ quote $ do
               assert= 0 $ as-score 0
