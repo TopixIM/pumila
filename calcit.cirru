@@ -403,7 +403,7 @@
                     {} (:background-color color) (:height size) (:width size) (:border-radius |6px) (:display :inline-block) (:margin "|0 8px 8px 0") (:cursor :pointer)
                   :on-click $ fn (e d!)
                     hint-fn $ Fn respo.schema/RespoEvent
-                      Fn app.schema/LocalOp $ -> Unit
+                      Fn schema/LocalOp $ -> Unit
                       -> Unit
                     d! $ on-pick color
                     , &unit
@@ -742,7 +742,7 @@
           :code $ quote $ defn on-submit (username password signup?)
             fn (e dispatch!)
               hint-fn $ Fn respo.schema/RespoEvent
-                Fn app.schema/UiOp $ -> Unit
+                Fn schema/UiOp $ -> Unit
                 -> Unit
                 :features :js-ffi
               dispatch! $ if signup?
