@@ -186,7 +186,11 @@
                         :home $ comp-dashboard (>> states :dashboard) router-data
                         :emotions $ comp-emotions-manager router-data
                         :edit-emotion $ comp-emotion-form (>> states :form) (app.schema/edit-route-data router)
-                        :history $ comp-history (>> states :history) (app.schema/read-field router-data :moods) (app.schema/read-field router-data :emotions)
+                        :history $ comp-history (>> states :history)
+                          decode-map-as (app.schema/read-field router-data :moods)
+                            Map String $ Map Tag Dynamic
+                          decode-map-as (app.schema/read-field router-data :emotions)
+                            Map String $ Map Tag Dynamic
                         :profile $ comp-profile (app.schema/read-field store :user) router-data
                         <> router
                       comp-login states
@@ -582,22 +586,32 @@
               div
                 {} $ :style $ {} (:margin "|8px 0") (:padding "|8px 16px")
                 comp-title |History
-              list->
+              keyed->
                 {} $ :style $ merge ui/flex
                   {} (:width |100%) (:padding "|8px 16px")
-                -> (app.schema/as-map moods) (.to-list)
-                  .sort-by $ fn (pair)
+                -> moods map-entries
+                  .sort-by $ fn (entry)
+                    hint-fn $ Fn
+                      MapEntry String $ Map Tag Dynamic
+                      -> Number
                     negate $ decode-map-as
-                      app.schema/read-field
-                        .unwrap $ last pair
-                        , :time
-                      , 'Number
-                  .map-pair $ fn (k mood)
-                    [] k $ comp-record
-                      >> states $ decode-map-as (app.schema/read-field mood :id) (quote String)
-                      , mood emotions
+                      app.schema/read-field (:value entry) :time
+                      , Number
+                  .map $ fn (entry)
+                    hint-fn $ Fn
+                      MapEntry String $ Map Tag Dynamic
+                      -> respo.schema/ChildPair
+                    let
+                        mood $ :value entry
+                      keyed-component (:key entry)
+                        comp-record
+                          >> states $ decode-map-as (app.schema/read-field mood :id) String
+                          , mood emotions
           :examples $ []
-          :schema $ quote $ Fn Dynamic Dynamic Dynamic (-> Dynamic)
+          :schema $ quote $ Fn respo.schema/States
+            Map String $ Map Tag Dynamic
+            Map String $ Map Tag Dynamic
+            -> respo.schema/Component
         'comp-record $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-record (states mood emotions)
             let
@@ -615,7 +629,8 @@
                     comp-emotion
                       .unwrap-or
                         .and-then (app.schema/lookup-field mood :emotion-id)
-                          fn (id) (get emotions id)
+                          fn (id)
+                            get emotions $ decode-map-as id String
                         {}
                       {}
                       , nil
@@ -638,14 +653,17 @@
                   :inner-text $ app.schema/read-field mood :text
                   :style $ merge ui/flex $ {} (:word-break :break-all)
           :examples $ []
-          :schema $ quote $ Fn Dynamic Dynamic Dynamic (-> Dynamic) (:features :js-ffi)
+          :schema $ quote $ Fn respo.schema/States (Map Tag Dynamic)
+            Map String $ Map Tag Dynamic
+            -> respo.schema/Component
+            :features :js-ffi
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.comp.history
           :require
             respo-ui.core :refer $ hsl
             respo-ui.core :as ui
             respo.comp.space :refer $ =<
-            respo.core :refer $ defcomp >> <> list-> span div a
+            respo.core :refer $ defcomp >> <> keyed-> keyed-component span div a
             app.config :as config
             app.comp.kit :refer $ comp-title
             app.comp.emotions :refer $ comp-emotion
