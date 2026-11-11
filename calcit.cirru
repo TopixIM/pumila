@@ -21,9 +21,10 @@
           :examples $ []
           :schema $ quote $ Ref (Map Tag Dynamic)
         '*store $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defref *store nil
+          :code $ quote $ defref *store None
           :examples $ []
-          :schema $ quote $ Ref Dynamic
+          :schema $ quote $ Ref
+            Option $ Map Tag Dynamic
         'DocumentHost $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait DocumentHost
             .querySelector $ Fn app.client/DocumentHost String $ -> (JsNullish JsObject)
@@ -42,8 +43,11 @@
                 if config/dev? (str |ws:// host |: port) (str |wss:// host |/ws)
                 {}
                   :on-open $ fn (event) (simulate-login!)
-                  :on-close $ fn (event) (reset! *store nil) (js/console.error "|Lost connection!")
-                  :on-data on-server-data
+                  :on-close $ fn (event) (reset! *store None) (js/console.error "|Lost connection!")
+                  :on-data $ fn (message)
+                    match message $
+                      :patch changes
+                      on-server-data $ recollect.schema/decode-changes changes
           :examples $ []
           :schema $ quote $ Fn (-> ws-edn.client/WsClient) (:features :js-ffi)
         'dispatch! $ %{} 'CodeEntry (:doc |)
@@ -88,7 +92,7 @@
             add-watch! *store :changes $ fn (store prev) (render-app!)
             add-watch! *states :changes $ fn (states prev) (render-app!)
             on-page-touch $ fn ()
-              if (nil? @*store) (connect!)
+              if (.none? @*store) (connect!)
               , &unit
             println "|App started!"
             , &unit
@@ -102,15 +106,12 @@
             -> $ JsNullish respo.dom/DomElement
             :features :js-ffi
         'on-server-data $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn on-server-data (data)
-            match data $
-              :patch changes
-              do
-                when config/dev? $ js/console.log |Changes changes
-                reset! *store $ patch-twig @*store $ recollect.schema/decode-changes changes
+          :code $ quote $ defn on-server-data (changes)
+            when config/dev? $ js/console.log |Changes changes
+            reset! *store $ app.schema/apply-server-patch @*store changes
             , &unit
           :examples $ []
-          :schema $ quote $ Fn Dynamic (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn (List recollect.schema/change-op) (-> Unit) (:features :js-ffi)
         'reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn reload! ()
             if
@@ -158,7 +159,6 @@
             app.schema :as schema
             app.config :as config
             ws-edn.client :refer $ ws-connect! ws-send!
-            recollect.patch :refer $ patch-twig
             cumulo-util.core :refer $ on-page-touch
             |bottom-tip :default hud!
             |./calcit.build-errors :default client-errors
@@ -166,47 +166,51 @@
     'app.comp.container $ %{} 'FileEntry
       :defs $ {}
         'comp-container $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defcomp comp-container (states store)
-            if (nil? store) (comp-offline)
-              let
-                  router $ .unwrap-or (app.schema/lookup-field store :router) ({})
-                  router-data $ .unwrap-or (app.schema/lookup-field router :data) ({})
-                div
-                  {} $ :style $ merge ui/global ui/fullscreen ui/column
-                  comp-navigation
-                    decode-map-as (app.schema/read-field store :logged-in?) 'Bool
-                    decode-map-as
-                      .unwrap-or (app.schema/lookup-field store :count) 0
-                      , 'Number
-                  if
-                    decode-map-as (app.schema/read-field store :logged-in?) 'Bool
-                    case (app.schema/read-field router :name)
-                      :home $ comp-dashboard (>> states :dashboard) router-data
-                      :emotions $ comp-emotions-manager router-data
-                      :edit-emotion $ comp-emotion-form (>> states :form) (app.schema/edit-route-data router)
-                      :history $ comp-history (>> states :history) (app.schema/read-field router-data :moods) (app.schema/read-field router-data :emotions)
-                      :profile $ comp-profile (app.schema/read-field store :user) router-data
-                      <> router
-                    comp-login states
-                  ; comp-status-color $ :color store
-                  if dev?
-                    Some $ comp-inspect |Store store $ {} (:bottom 20) (:left 0) (:max-width |100%)
-                    , None
-                  comp-messages
-                    app.schema/as-string-map $ ->
-                      get-in store $ [] :session :messages
-                      .unwrap-or $ {}
-                    {}
-                    fn (info d!)
-                      hint-fn $ Fn (Map Tag Dynamic)
-                        Fn AnyEnum $ -> Unit
-                        -> Unit
-                      d! $ app.schema/RemoteOp :session/remove-message $ decode-map-as (app.schema/read-field info :id) 'String
-                      , &unit
-                  ; when dev? $ comp-reel (:reel-length store)
-                    {} (:bottom 100) (:background-color :white)
+          :code $ quote $ defcomp comp-container (states maybe-store)
+            match maybe-store
+              (:none) (comp-offline)
+              (:some store)
+                let
+                    router $ .unwrap-or (app.schema/lookup-field store :router) ({})
+                    router-data $ .unwrap-or (app.schema/lookup-field router :data) ({})
+                  div
+                    {} $ :style $ merge ui/global ui/fullscreen ui/column
+                    comp-navigation
+                      decode-map-as (app.schema/read-field store :logged-in?) 'Bool
+                      decode-map-as
+                        .unwrap-or (app.schema/lookup-field store :count) 0
+                        , 'Number
+                    if
+                      decode-map-as (app.schema/read-field store :logged-in?) 'Bool
+                      case (app.schema/read-field router :name)
+                        :home $ comp-dashboard (>> states :dashboard) router-data
+                        :emotions $ comp-emotions-manager router-data
+                        :edit-emotion $ comp-emotion-form (>> states :form) (app.schema/edit-route-data router)
+                        :history $ comp-history (>> states :history) (app.schema/read-field router-data :moods) (app.schema/read-field router-data :emotions)
+                        :profile $ comp-profile (app.schema/read-field store :user) router-data
+                        <> router
+                      comp-login states
+                    ; comp-status-color $ :color store
+                    if dev?
+                      Some $ comp-inspect |Store store $ {} (:bottom 20) (:left 0) (:max-width |100%)
+                      , None
+                    comp-messages
+                      app.schema/as-string-map $ ->
+                        get-in store $ [] :session :messages
+                        .unwrap-or $ {}
+                      {}
+                      fn (info d!)
+                        hint-fn $ Fn (Map Tag Dynamic)
+                          Fn AnyEnum $ -> Unit
+                          -> Unit
+                        d! $ app.schema/RemoteOp :session/remove-message $ decode-map-as (app.schema/read-field info :id) 'String
+                        , &unit
+                    ; when dev? $ comp-reel (:reel-length store)
+                      {} (:bottom 100) (:background-color :white)
           :examples $ []
-          :schema $ quote $ Fn Dynamic Dynamic (-> respo.schema/Component)
+          :schema $ quote $ Fn Dynamic
+            Option $ Map Tag Dynamic
+            -> respo.schema/Component
         'comp-offline $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-offline ()
             div
@@ -918,6 +922,18 @@
             :: :states ([]) nil
           :examples $ []
           :schema $ quote AnyEnum
+        'apply-server-patch $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn apply-server-patch (store changes)
+            let
+                patched $ match store
+                  (:some previous) (recollect.patch/patch-twig previous changes)
+                  (:none) (recollect.patch/patch-twig nil changes)
+              if (nil? patched) None $ Some $ decode-map-as patched (Map Tag Dynamic)
+          :examples $ []
+          :schema $ quote $ Fn
+            Option $ Map Tag Dynamic
+            List recollect.schema/change-op
+            -> $ Option $ Map Tag Dynamic
         'as-map $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn as-map (value)
             decode-map-as value $ Map Dynamic Dynamic
@@ -1152,9 +1168,18 @@
                 changes $ as-change-list $ diff-twig before after
                   {} $ :key :id
                 wire $ format-cirru-edn $ :: :patch changes
+                initial $ as-change-list $ diff-twig nil before
+                  {} $ :key :id
+                initial-wire $ format-cirru-edn $ :: :patch initial
+              match (parse-cirru-edn initial-wire)
+                (:patch raw)
+                  assert= (Some before)
+                    app.schema/apply-server-patch None $ as-change-list raw
+                _ $ raise "|Expected initial patch wire message"
               match (parse-cirru-edn wire)
                 (:patch raw)
-                  assert= after $ recollect.patch/patch-twig before $ as-change-list raw
+                  assert= (Some after)
+                    app.schema/apply-server-patch (Some before) (as-change-list raw)
                 _ $ raise "|Expected patch wire message"
         'dispatch! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispatch! (op sid)
