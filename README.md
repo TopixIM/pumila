@@ -10,7 +10,7 @@ https://github.com/Cumulo/calcium-workflow
 
 ### 构建与部署
 
-正式 Calcit CLI / `@calcit/procs` 0.41.1、Caps 0.1.1、Node.js 24、Yarn 4.18.0。升级时按 `deps.cirru` 的正式标签重新解析全图、构建前端，并为服务进程安装同版 CLI 与原生依赖。
+正式 Calcit CLI / `@calcit/procs` 0.42.1、Caps 0.1.1、Node.js 24、Yarn 4.18.0。升级时按 `deps.cirru` 的正式标签重新解析全图、构建前端，并为服务进程安装同版 CLI 与原生依赖。
 
 浏览器事件使用 `LocalOp | RemoteOp`，服务端将收包解码为 `RemoteOp | ConnectionOp`。线上仍使用原匿名 WebSocket tag 和字段形状，登录/注册仍发送双元素列表，编辑路由保留旧 `Option` 载荷。原存储路径、字段名及数字字符串 score 的读取行为保留。真实异构的存档与状态树仍在各自边界处理，必需字段和可缺失字段分别读写。Alerts 0.14.3 的旧匿名 `:states` 通过视图入口适配，其快照引用的 Reel 0.11.0 在依赖图中显式声明。HUD 继续在页面显示错误。
 
@@ -20,7 +20,7 @@ COS 只上传前端 `dist/`。生产 CDN 路径保持 `https://cos-sh.tiye.me/To
 
 依赖机器人或其他缺少 COS 凭据的 PR 保留全部编译/类型门禁，只告警并跳过前端预览上传；当前生产提交缺少任一 COS 凭据仍立即失败，阻止后续前后端 rsync。不为 PR 开放额外 secret，不改变前后端目录。
 
-生产运行排队且不取消进行中的上传，上传前一次检查 main SHA，旧提交跳过部署；不是原子发布。原 `pumila.chenyong.life` 主机、`rsync_private_key_tc` secret、web rsync 目录与 `/servers/pumila/` 服务端目录都不变，`dist-server/` 不上传 COS。合并仍会触发原前后端 rsync：需要先确认服务器采用正式 Calcit 0.41.1、能安装严格依赖图并使用 `calcit --entry server`；当前 PR 的前端预览和原生测试独立于生产服务器。
+生产运行排队且不取消进行中的上传，上传前一次检查 main SHA，旧提交跳过部署；不是原子发布。原 `pumila.chenyong.life` 主机、`rsync_private_key_tc` secret、web rsync 目录与 `/servers/pumila/` 服务端目录都不变，`dist-server/` 不上传 COS。合并仍会触发原前后端 rsync：需要先确认服务器采用正式 Calcit 0.42.1、能安装严格依赖图并使用 `calcit --entry server`；当前 PR 的前端预览和原生测试独立于生产服务器。
 
 模块使用正式精确 tag，不用 hash/main 绕过，也不混入 0.31 alpha；Actions 的第三方工具仍固定到已发布版本的不可变 SHA。删除未使用的 Lilac 依赖和入口，复用正式 JS-FFI、Respo DOM、Recollect 解码合同。`js-out/`、`dist/`、`dist-server/`、临时迁移脚本和旧 Snapshot 不入库。
 

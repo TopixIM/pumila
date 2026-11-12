@@ -49,7 +49,7 @@
                       :patch changes
                       on-server-data $ recollect.schema/decode-changes changes
           :examples $ []
-          :schema $ quote $ Fn (-> ws-edn.client/WsClient) (:features :js-ffi)
+          :schema $ quote $ Fn (-> ws-edn.client/WsClient) (:features :io :js-ffi :state)
         'dispatch! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispatch! (op)
             when
@@ -67,7 +67,7 @@
                 ws-send! $ schema/remote-op-to-wire action
             , &unit
           :examples $ []
-          :schema $ quote $ Fn schema/UiOp (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn schema/UiOp (-> Unit) (:features :io :js-ffi :state)
         'dispatch-from-view! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispatch-from-view! (op)
             cond
@@ -82,7 +82,7 @@
                     , state
                 _ $ raise "|Unknown Pumila view operation"
           :examples $ []
-          :schema $ quote $ Fn AnyEnum (-> Unit) (:features :js-ffi) (:open :reflect)
+          :schema $ quote $ Fn AnyEnum (-> Unit) (:features :io :js-ffi :state) (:open :reflect)
         'main! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn main! ()
             println "|Running mode:" $ if config/dev? |dev |release
@@ -97,7 +97,7 @@
             println "|App started!"
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn (-> Unit) (:features :io :js-ffi :state)
         'mount-target $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn mount-target ()
             .query-selector (js-cast js/document 'respo.dom/DomDocument) |.app
@@ -111,7 +111,7 @@
             reset! *store $ app.schema/apply-server-patch @*store changes
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (List recollect.schema/change-op) (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn (List recollect.schema/change-op) (-> Unit) (:features :js-ffi :state)
         'reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn reload! ()
             if
@@ -123,14 +123,14 @@
                 println "|Code updated."
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn (-> Unit) (:features :io :js-ffi :state)
         'render-app! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-app! ()
             render-with! (mount-target)
               fn () $ comp-container (app.schema/read-field @*states :states) @*store
               , dispatch-from-view!
           :examples $ []
-          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn (-> Unit) (:features :io :js-ffi :state)
         'simulate-login! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn simulate-login! ()
             let
@@ -144,7 +144,7 @@
                 println "|Found no storage."
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn (-> Unit) (:features :io :js-ffi :state)
         'ssr? $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn ssr? ()
             js-present? $ .querySelector (js-cast js/document 'app.client/DocumentHost) |meta.respo-ssr
@@ -956,14 +956,16 @@
           :code $ quote $ defn as-map (value)
             decode-map-as value $ Map Dynamic Dynamic
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Map Dynamic Dynamic
+            :generics Input
         'as-map-option $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn as-map-option (value)
             decode-map-as value $ Option $ Map Tag Dynamic
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Option $ Map Tag Dynamic
+            :generics Input
         'as-score $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn as-score (value)
             match (try-decode-map-as value app.schema/ScoreInput)
@@ -992,14 +994,16 @@
           :code $ quote $ defn as-string-map (value)
             decode-map-as value $ Map String Dynamic
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Map String Dynamic
+            :generics Input
         'as-style $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn as-style (value)
             decode-map-as value $ Map Tag Dynamic
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Map Tag Dynamic
+            :generics Input
         'database $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def database
             {}
@@ -1019,7 +1023,7 @@
                   .unwrap $ nth items 1
                   , 'String
           :examples $ []
-          :schema $ quote $ Fn Dynamic (-> Credentials)
+          :schema $ quote $ Fn Input (-> Credentials) (:generics Input)
         'decode-server-op $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn decode-server-op (message)
             match message
@@ -1212,7 +1216,7 @@
               reset! *reel $ reel-reducer @*reel updater op sid op-id op-time config/dev?
               , &unit
           :examples $ []
-          :schema $ quote $ Fn schema/ServerOp Number (-> Unit)
+          :schema $ quote $ Fn schema/ServerOp Number (-> Unit) (:features :io :state)
         'get-backup-path! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn get-backup-path! ()
             let
@@ -1243,11 +1247,11 @@
             set-interval 600000 $ fn () (persist-db!) &unit
             on-control-c on-exit!
           :examples $ []
-          :schema $ quote $ Fn (-> Dynamic)
+          :schema $ quote $ Fn (-> Dynamic) (:features :io :state)
         'on-exit! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn on-exit! () (persist-db!) (; println "|exit code is...") (quit! 0)
           :examples $ []
-          :schema $ quote $ Fn (-> Dynamic)
+          :schema $ quote $ Fn (-> Dynamic) (:features :io :state)
         'parse-database $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn parse-database (content)
             decode-map-as (parse-cirru-edn content) (Map Tag Dynamic)
@@ -1263,7 +1267,7 @@
               check-write-file! storage-path file-content
               check-write-file! backup-path file-content
           :examples $ []
-          :schema $ quote $ Fn (-> Dynamic) (:features :js-ffi)
+          :schema $ quote $ Fn (-> Dynamic) (:features :js-ffi :state)
         'reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn reload! () (println "|Code updated..")
             if (not config/dev?) (raise "|reloading only happens in dev mode")
@@ -1271,7 +1275,7 @@
             reset! *reader-reel @*reel
             sync-clients! @*reader-reel
           :examples $ []
-          :schema $ quote $ Fn (-> Dynamic)
+          :schema $ quote $ Fn (-> Dynamic) (:features :io :state)
         'render-loop! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-loop! ()
             when
@@ -1279,7 +1283,7 @@
               reset! *reader-reel @*reel
               sync-clients! @*reader-reel
           :examples $ []
-          :schema $ quote $ Fn (-> Dynamic)
+          :schema $ quote $ Fn (-> Dynamic) (:features :state)
         'run-server! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn run-server! (port)
             wss-serve! (&{} :port port)
@@ -1301,7 +1305,7 @@
                   _ $ println "|unknown data:" data
                 , &unit
           :examples $ []
-          :schema $ quote $ Fn Number (-> Dynamic)
+          :schema $ quote $ Fn Number (-> Dynamic) (:features :io :state)
         'storage-file $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def storage-file
             if (empty? calcit-dirname)
@@ -1335,6 +1339,7 @@
           :schema $ quote $ Fn
             cumulo-reel.core/ReelState $ Map Tag Dynamic
             -> Dynamic
+            :features :state
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.server
           :require (app.schema :as schema)
