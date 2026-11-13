@@ -1026,33 +1026,35 @@
           :schema $ quote $ Fn Input (-> Credentials) (:generics Input)
         'decode-server-op $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn decode-server-op (message)
-            match message
-              (:session/connect) (app.schema/ConnectionOp :session/connect)
-              (:session/disconnect) (app.schema/ConnectionOp :session/disconnect)
-              (:session/remove-message value)
-                app.schema/RemoteOp :session/remove-message $ decode-map-as
-                  read-field
-                    decode-map-as value $ Map Tag Dynamic
-                    , :id
-                  , 'String
-              (:user/log-in value)
-                app.schema/RemoteOp :user/log-in $ decode-credentials value
-              (:user/sign-up value)
-                app.schema/RemoteOp :user/sign-up $ decode-credentials value
-              (:user/log-out _) (app.schema/RemoteOp :user/log-out)
-              (:router/change value)
-                app.schema/RemoteOp :router/change $ decode-map-as value $ Map Tag Dynamic
-              (:emotion/create-one value)
-                app.schema/RemoteOp :emotion/create-one $ decode-map-as value $ Map Tag Dynamic
-              (:emotion/remove-one value)
-                app.schema/RemoteOp :emotion/remove-one $ decode-map-as value 'String
-              (:mood/create-one value)
-                app.schema/RemoteOp :mood/create-one $ decode-map-as value $ Map Tag Dynamic
-              (:mood/remove-one value)
-                app.schema/RemoteOp :mood/remove-one $ decode-map-as value 'String
-              _ $ raise "|Unknown Pumila wire operation"
+            if (enum? message)
+              match message
+                (:session/connect) (app.schema/ConnectionOp :session/connect)
+                (:session/disconnect) (app.schema/ConnectionOp :session/disconnect)
+                (:session/remove-message value)
+                  app.schema/RemoteOp :session/remove-message $ decode-map-as
+                    read-field
+                      decode-map-as value $ Map Tag Dynamic
+                      , :id
+                    , 'String
+                (:user/log-in value)
+                  app.schema/RemoteOp :user/log-in $ decode-credentials value
+                (:user/sign-up value)
+                  app.schema/RemoteOp :user/sign-up $ decode-credentials value
+                (:user/log-out _) (app.schema/RemoteOp :user/log-out)
+                (:router/change value)
+                  app.schema/RemoteOp :router/change $ decode-map-as value $ Map Tag Dynamic
+                (:emotion/create-one value)
+                  app.schema/RemoteOp :emotion/create-one $ decode-map-as value $ Map Tag Dynamic
+                (:emotion/remove-one value)
+                  app.schema/RemoteOp :emotion/remove-one $ decode-map-as value 'String
+                (:mood/create-one value)
+                  app.schema/RemoteOp :mood/create-one $ decode-map-as value $ Map Tag Dynamic
+                (:mood/remove-one value)
+                  app.schema/RemoteOp :mood/remove-one $ decode-map-as value 'String
+                _ $ raise "|Unknown Pumila wire operation"
+              raise "|Expected an operation Enum"
           :examples $ []
-          :schema $ quote $ Fn AnyEnum (-> ServerOp) (:open :reflect)
+          :schema $ quote $ Fn Input (-> ServerOp) (:generics Input)
         'edit-route-data $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn edit-route-data (router)
             match (lookup-field router :data)
@@ -1296,9 +1298,7 @@
                   (:message sid msg)
                     let
                         op $ parse-cirru-edn msg
-                      if (enum? op)
-                        dispatch! (schema/decode-server-op op) sid
-                        raise "|Expected an operation Enum"
+                      dispatch! (schema/decode-server-op op) sid
                   (:disconnect sid)
                     do (println "|Client closed!")
                       dispatch! (app.schema/ConnectionOp :session/disconnect) sid
