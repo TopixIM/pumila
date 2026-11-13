@@ -70,19 +70,21 @@
           :schema $ quote $ Fn schema/UiOp (-> Unit) (:features :io :js-ffi :state)
         'dispatch-from-view! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispatch-from-view! (op)
-            cond
-                = (enum-definition op) (Some app.schema/LocalOp)
-                dispatch! $ decode-map-as op 'app.schema/LocalOp
-              (= (enum-definition op) (Some app.schema/RemoteOp))
-                dispatch! $ decode-map-as op 'app.schema/RemoteOp
-              true $ match op
-                (:states cursor state)
-                  dispatch! $ app.schema/LocalOp :states
-                    decode-map-as cursor $ List respo.schema/CoordKey
-                    , state
-                _ $ raise "|Unknown Pumila view operation"
+            if (enum? op)
+              cond
+                  = (enum-definition op) (Some app.schema/LocalOp)
+                  dispatch! $ decode-map-as op 'app.schema/LocalOp
+                (= (enum-definition op) (Some app.schema/RemoteOp))
+                  dispatch! $ decode-map-as op 'app.schema/RemoteOp
+                true $ match op
+                  (:states cursor state)
+                    dispatch! $ app.schema/LocalOp :states
+                      decode-map-as cursor $ List respo.schema/CoordKey
+                      , state
+                  _ $ raise "|Unknown Pumila view operation"
+              raise "|Unknown Pumila view operation"
           :examples $ []
-          :schema $ quote $ Fn AnyEnum (-> Unit) (:features :io :js-ffi :state) (:open :reflect)
+          :schema $ quote $ Fn T (-> Unit) (:generics T) (:features :io :js-ffi :state) (:open :reflect)
         'main! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn main! ()
             println "|Running mode:" $ if config/dev? |dev |release
