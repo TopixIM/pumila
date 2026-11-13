@@ -729,16 +729,12 @@
                   div
                     {} $ :style $ {}
                     div ({})
-                      input $ {} (:placeholder |Username)
-                        :value $ decode-map-as (app.schema/read-field state :username) 'String
-                        :style ui/input
+                      input $ {} (:placeholder |Username) (:value username) (:style ui/input)
                         :on-input $ fn (e d!)
                           d! $ app.schema/LocalOp :states cursor $ assoc state :username (respo.core/event-value e)
                     =< nil 8
                     div ({})
-                      input $ {} (:placeholder |Password)
-                        :value $ decode-map-as (app.schema/read-field state :password) 'String
-                        :style ui/input
+                      input $ {} (:placeholder |Password) (:value password) (:style ui/input)
                         :on-input $ fn (e d!)
                           d! $ app.schema/LocalOp :states cursor $ assoc state :password (respo.core/event-value e)
                   =< nil 8
@@ -746,17 +742,11 @@
                     {} $ :style $ {} (:text-align :right)
                     span $ {} (:inner-text "|Sign up")
                       :style $ merge ui/link
-                      :on-click $ on-submit
-                        decode-map-as (app.schema/read-field state :username) 'String
-                        decode-map-as (app.schema/read-field state :password) 'String
-                        , true
+                      :on-click $ on-submit username password true
                     =< 8 nil
                     span $ {} (:inner-text "|Log in")
                       :style $ merge ui/link
-                      :on-click $ on-submit
-                        decode-map-as (app.schema/read-field state :username) 'String
-                        decode-map-as (app.schema/read-field state :password) 'String
-                        , false
+                      :on-click $ on-submit username password false
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic) (-> respo.schema/Component)
         'initial-state $ %{} 'CodeEntry (:doc |)
