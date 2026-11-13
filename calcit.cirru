@@ -70,19 +70,21 @@
           :schema $ quote $ Fn schema/UiOp (-> Unit) (:features :io :js-ffi :state)
         'dispatch-from-view! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispatch-from-view! (op)
-            cond
-                = (enum-definition op) (Some app.schema/LocalOp)
-                dispatch! $ decode-map-as op 'app.schema/LocalOp
-              (= (enum-definition op) (Some app.schema/RemoteOp))
-                dispatch! $ decode-map-as op 'app.schema/RemoteOp
-              true $ match op
-                (:states cursor state)
-                  dispatch! $ app.schema/LocalOp :states
-                    decode-map-as cursor $ List respo.schema/CoordKey
-                    , state
-                _ $ raise "|Unknown Pumila view operation"
+            if (enum? op)
+              cond
+                  = (enum-definition op) (Some app.schema/LocalOp)
+                  dispatch! $ decode-map-as op 'app.schema/LocalOp
+                (= (enum-definition op) (Some app.schema/RemoteOp))
+                  dispatch! $ decode-map-as op 'app.schema/RemoteOp
+                true $ match op
+                  (:states cursor state)
+                    dispatch! $ app.schema/LocalOp :states
+                      decode-map-as cursor $ List respo.schema/CoordKey
+                      , state
+                  _ $ raise "|Unknown Pumila view operation"
+              raise "|Unknown Pumila view operation"
           :examples $ []
-          :schema $ quote $ Fn AnyEnum (-> Unit) (:features :io :js-ffi :state) (:open :reflect)
+          :schema $ quote $ Fn T (-> Unit) (:generics T) (:features :io :js-ffi :state) (:open :reflect)
         'main! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn main! ()
             println "|Running mode:" $ if config/dev? |dev |release
@@ -1024,33 +1026,35 @@
           :schema $ quote $ Fn Input (-> Credentials) (:generics Input)
         'decode-server-op $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn decode-server-op (message)
-            match message
-              (:session/connect) (app.schema/ConnectionOp :session/connect)
-              (:session/disconnect) (app.schema/ConnectionOp :session/disconnect)
-              (:session/remove-message value)
-                app.schema/RemoteOp :session/remove-message $ decode-map-as
-                  read-field
-                    decode-map-as value $ Map Tag Dynamic
-                    , :id
-                  , 'String
-              (:user/log-in value)
-                app.schema/RemoteOp :user/log-in $ decode-credentials value
-              (:user/sign-up value)
-                app.schema/RemoteOp :user/sign-up $ decode-credentials value
-              (:user/log-out _) (app.schema/RemoteOp :user/log-out)
-              (:router/change value)
-                app.schema/RemoteOp :router/change $ decode-map-as value $ Map Tag Dynamic
-              (:emotion/create-one value)
-                app.schema/RemoteOp :emotion/create-one $ decode-map-as value $ Map Tag Dynamic
-              (:emotion/remove-one value)
-                app.schema/RemoteOp :emotion/remove-one $ decode-map-as value 'String
-              (:mood/create-one value)
-                app.schema/RemoteOp :mood/create-one $ decode-map-as value $ Map Tag Dynamic
-              (:mood/remove-one value)
-                app.schema/RemoteOp :mood/remove-one $ decode-map-as value 'String
-              _ $ raise "|Unknown Pumila wire operation"
+            if (enum? message)
+              match message
+                (:session/connect) (app.schema/ConnectionOp :session/connect)
+                (:session/disconnect) (app.schema/ConnectionOp :session/disconnect)
+                (:session/remove-message value)
+                  app.schema/RemoteOp :session/remove-message $ decode-map-as
+                    read-field
+                      decode-map-as value $ Map Tag Dynamic
+                      , :id
+                    , 'String
+                (:user/log-in value)
+                  app.schema/RemoteOp :user/log-in $ decode-credentials value
+                (:user/sign-up value)
+                  app.schema/RemoteOp :user/sign-up $ decode-credentials value
+                (:user/log-out _) (app.schema/RemoteOp :user/log-out)
+                (:router/change value)
+                  app.schema/RemoteOp :router/change $ decode-map-as value $ Map Tag Dynamic
+                (:emotion/create-one value)
+                  app.schema/RemoteOp :emotion/create-one $ decode-map-as value $ Map Tag Dynamic
+                (:emotion/remove-one value)
+                  app.schema/RemoteOp :emotion/remove-one $ decode-map-as value 'String
+                (:mood/create-one value)
+                  app.schema/RemoteOp :mood/create-one $ decode-map-as value $ Map Tag Dynamic
+                (:mood/remove-one value)
+                  app.schema/RemoteOp :mood/remove-one $ decode-map-as value 'String
+                _ $ raise "|Unknown Pumila wire operation"
+              raise "|Expected an operation Enum"
           :examples $ []
-          :schema $ quote $ Fn AnyEnum (-> ServerOp) (:open :reflect)
+          :schema $ quote $ Fn Input (-> ServerOp) (:generics Input)
         'edit-route-data $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn edit-route-data (router)
             match (lookup-field router :data)
@@ -1294,9 +1298,7 @@
                   (:message sid msg)
                     let
                         op $ parse-cirru-edn msg
-                      if (enum? op)
-                        dispatch! (schema/decode-server-op op) sid
-                        raise "|Expected an operation Enum"
+                      dispatch! (schema/decode-server-op op) sid
                   (:disconnect sid)
                     do (println "|Client closed!")
                       dispatch! (app.schema/ConnectionOp :session/disconnect) sid
