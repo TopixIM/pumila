@@ -439,7 +439,10 @@
                       decode-map-as cursor $ List respo.schema/CoordKey
                       assoc form :text $ respo.core/event-value e
                 comp-field |Score $ input $ {} (:style ui/input)
-                  :value $ app.schema/read-field form :score
+                  :value $ match
+                    decode-map-as (app.schema/read-field form :score) app.schema/ScoreInput
+                    (Number score) score
+                    (String draft) draft
                   :type |number
                   :on-input $ fn (e d!)
                     d! $ app.schema/LocalOp :states
