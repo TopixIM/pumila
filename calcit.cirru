@@ -127,7 +127,9 @@
         'render-app! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-app! ()
             render-with! (mount-target)
-              fn () $ comp-container (app.schema/read-field @*states :states) @*store
+              fn () $ comp-container
+                app.schema/as-style $ app.schema/read-field @*states :states
+                , @*store
               , dispatch-from-view!
           :examples $ []
           :schema $ quote $ Fn (-> Unit) (:features :io :js-ffi :state)
@@ -212,7 +214,7 @@
                     ; when dev? $ comp-reel (:reel-length store)
                       {} (:bottom 100) (:background-color :white)
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic)
             Option $ Map Tag Dynamic
             -> respo.schema/Component
         'comp-offline $ %{} 'CodeEntry (:doc |)
@@ -237,7 +239,7 @@
                     d! $ app.schema/LocalOp :effect/connect
                 <> "|No connection..." $ {} (:font-family ui/font-fancy) (:font-size 24)
           :examples $ []
-          :schema $ quote $ Fn (-> Dynamic)
+          :schema $ quote $ Fn (-> respo.schema/Component)
         'comp-status-color $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-status-color (color)
             div $ {} $ :style
@@ -287,12 +289,13 @@
                         .unwrap $ last pair
                         , :score
                     .map-pair $ fn (k emotion)
-                      [] k $ comp-emotion emotion nil $ fn (e d!)
-                        d! $ app.schema/LocalOp :states
-                          decode-map-as cursor $ List respo.schema/CoordKey
-                          merge (app.schema/as-style state)
-                            {} (:show-editor? true)
-                              :emotion-id $ app.schema/read-field emotion :id
+                      [] k $ comp-emotion emotion $ Some
+                        fn (e d!)
+                          d! $ app.schema/LocalOp :states
+                            decode-map-as cursor $ List respo.schema/CoordKey
+                            merge (app.schema/as-style state)
+                              {} (:show-editor? true)
+                                :emotion-id $ app.schema/read-field emotion :id
                 =< nil 0
                 div
                   {} $ :style ui/row-parted
@@ -332,7 +335,7 @@
                               .unwrap-or
                                 .and-then emotion-id $ fn (id) (get emotions id)
                                 {}
-                              , nil $ fn $ e d!
+                              Some $ fn (e d!) &unit
                             div
                               {} $ :style $ merge ui/expand
                                 {} (:white-space :nowrap) (:text-overflow :ellipsis) (:overflow :hidden)
@@ -352,7 +355,7 @@
                               .and-then (app.schema/lookup-field state :emotion-id)
                                 fn (id) (get emotions id)
                               {}
-                            , nil $ fn $
+                            Some $ fn (e d!) &unit
                         div ({})
                           textarea $ {}
                             :style $ merge ui/textarea $ {} (:width |100%) (:min-height 160)
@@ -514,21 +517,22 @@
     'app.comp.emotions $ %{} 'FileEntry
       :defs $ {}
         'comp-emotion $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defcomp comp-emotion (emotion style on-click!)
+          :code $ quote $ defcomp comp-emotion (emotion on-click!)
             div
-              {}
-                :style $ merge ui/center
-                  {}
-                    :background-color $ .unwrap-or (app.schema/lookup-field emotion :color) :transparent
-                    :display :inline-flex
-                    :padding "|0 16px"
-                    :line-height |24px
-                    :height |24px
-                    :margin "|0 8px 8px 0"
-                    :border-radius |8px
-                    :color :white
-                  if (nil? style) ({}) (app.schema/as-style style)
-                :on-click on-click!
+              let
+                  props $ app.schema/as-style $ {}
+                    :style $ merge ui/center $ {}
+                      :background-color $ .unwrap-or (app.schema/lookup-field emotion :color) :transparent
+                      :display :inline-flex
+                      :padding "|0 16px"
+                      :line-height |24px
+                      :height |24px
+                      :margin "|0 8px 8px 0"
+                      :border-radius |8px
+                      :color :white
+                match on-click!
+                  (:some handler) (assoc props :on-click handler)
+                  (:none) props
               let
                   text $ app.schema/lookup-field emotion :text
                 match text
@@ -537,7 +541,11 @@
                   (:some value)
                     <> $ decode-map-as value 'String
           :examples $ []
-          :schema $ quote $ Fn Dynamic Dynamic Dynamic (-> Dynamic)
+          :schema $ quote $ Fn Dynamic
+            Option $ Fn respo.schema/RespoEvent
+              Fn app.schema/UiOp $ -> Unit
+              -> Unit
+            -> respo.schema/Component
         'comp-emotions-manager $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-emotions-manager (emotions)
             div
@@ -559,14 +567,15 @@
                 list-> ({})
                   -> (app.schema/as-map emotions) (.to-list)
                     .map-pair $ fn (k emotion)
-                      [] k $ comp-emotion emotion nil $ fn (e d!)
-                        d! $ app.schema/RemoteOp :router/change $ decode-map-as
-                          {} (:name :edit-emotion)
-                            :data $ app.schema/read-field emotion :id
-                          Map Tag Dynamic
+                      [] k $ comp-emotion emotion $ Some
+                        fn (e d!)
+                          d! $ app.schema/RemoteOp :router/change $ decode-map-as
+                            {} (:name :edit-emotion)
+                              :data $ app.schema/read-field emotion :id
+                            Map Tag Dynamic
               =< nil 32
           :examples $ []
-          :schema $ quote $ Fn Dynamic (-> Dynamic)
+          :schema $ quote $ Fn Dynamic (-> respo.schema/Component)
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.comp.emotions
           :require
@@ -632,8 +641,7 @@
                           fn (id)
                             get emotions $ decode-map-as id String
                         {}
-                      {}
-                      , nil
+                      , None
                     comp-hint $ js-ffi.contract/expect-string |app.comp.history/comp-record $ ->
                       dayjs $ app.schema/read-field mood :time
                       .!format "|MM-DD HH:mm"
@@ -709,8 +717,12 @@
         'comp-login $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-login (states)
             let
-                cursor $ app.schema/read-field states :cursor
-                state $ .unwrap-or (app.schema/lookup-field states :data) initial-state
+                cursor $ decode-map-as (app.schema/read-field states :cursor) (List respo.schema/CoordKey)
+                state $ decode-map-as
+                  .unwrap-or (app.schema/lookup-field states :data) initial-state
+                  Map Tag String
+                username $ .unwrap $ get state :username
+                password $ .unwrap $ get state :password
               div
                 {} $ :style $ merge ui/flex ui/center
                 div ({})
@@ -721,18 +733,14 @@
                         :value $ decode-map-as (app.schema/read-field state :username) 'String
                         :style ui/input
                         :on-input $ fn (e d!)
-                          d! $ app.schema/LocalOp :states
-                            decode-map-as cursor $ List respo.schema/CoordKey
-                            assoc state :username $ respo.core/event-value e
+                          d! $ app.schema/LocalOp :states cursor $ assoc state :username (respo.core/event-value e)
                     =< nil 8
                     div ({})
                       input $ {} (:placeholder |Password)
                         :value $ decode-map-as (app.schema/read-field state :password) 'String
                         :style ui/input
                         :on-input $ fn (e d!)
-                          d! $ app.schema/LocalOp :states
-                            decode-map-as cursor $ List respo.schema/CoordKey
-                            assoc state :password $ respo.core/event-value e
+                          d! $ app.schema/LocalOp :states cursor $ assoc state :password (respo.core/event-value e)
                   =< nil 8
                   div
                     {} $ :style $ {} (:text-align :right)
@@ -750,12 +758,12 @@
                         decode-map-as (app.schema/read-field state :password) 'String
                         , false
           :examples $ []
-          :schema $ quote $ Fn Dynamic (-> Dynamic)
+          :schema $ quote $ Fn (Map Tag Dynamic) (-> respo.schema/Component)
         'initial-state $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def initial-state
             {} (:username |) (:password |)
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote $ Map Tag String
         'on-submit $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn on-submit (username password signup?)
             fn (e dispatch!)
@@ -816,7 +824,7 @@
                 =< 8 nil
                 <> $ str count-members
           :examples $ []
-          :schema $ quote $ Fn Bool Number (-> Dynamic)
+          :schema $ quote $ Fn Bool Number (-> respo.schema/Component)
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.comp.navigation
           :require
