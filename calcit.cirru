@@ -1186,8 +1186,9 @@
         'as-change-list $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn as-change-list (value) (recollect.schema/decode-changes value)
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ List recollect.schema/change-op
+            :generics Input
           :tests $ [] $ %{} 'TestEntry (:name |wire-patch-roundtrip)
             :code $ quote $ let
                 before $ {} (:count 1)
