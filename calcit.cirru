@@ -1255,12 +1255,13 @@
             set-interval 200 $ fn () (render-loop!) &unit
             set-interval 600000 $ fn () (persist-db!) &unit
             on-control-c on-exit!
+            , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Dynamic) (:features :io :state)
+          :schema $ quote $ Fn (-> Unit) (:features :io :state)
         'on-exit! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn on-exit! () (persist-db!) (; println "|exit code is...") (quit! 0)
           :examples $ []
-          :schema $ quote $ Fn (-> Dynamic) (:features :io :state)
+          :schema $ quote $ Fn (-> Unit) (:features :io :state)
         'parse-database $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn parse-database (content)
             decode-map-as (parse-cirru-edn content) (Map Tag Dynamic)
@@ -1276,7 +1277,7 @@
               check-write-file! storage-path file-content
               check-write-file! backup-path file-content
           :examples $ []
-          :schema $ quote $ Fn (-> Dynamic) (:features :js-ffi :state)
+          :schema $ quote $ Fn (-> Bool) (:features :js-ffi :state)
         'reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn reload! () (println "|Code updated..")
             if (not config/dev?) (raise "|reloading only happens in dev mode")
@@ -1284,15 +1285,16 @@
             reset! *reader-reel @*reel
             sync-clients! @*reader-reel
           :examples $ []
-          :schema $ quote $ Fn (-> Dynamic) (:features :io :state)
+          :schema $ quote $ Fn (-> Unit) (:features :io :state)
         'render-loop! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-loop! ()
             when
               not $ identical? @*reader-reel @*reel
               reset! *reader-reel @*reel
               sync-clients! @*reader-reel
+            , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Dynamic) (:features :state)
+          :schema $ quote $ Fn (-> Unit) (:features :state)
         'run-server! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn run-server! (port)
             wss-serve! (&{} :port port)
@@ -1312,7 +1314,7 @@
                   _ $ println "|unknown data:" data
                 , &unit
           :examples $ []
-          :schema $ quote $ Fn Number (-> Dynamic) (:features :io :state)
+          :schema $ quote $ Fn Number (-> FfiTask) (:features :io :state)
         'storage-file $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def storage-file
             if (empty? calcit-dirname)
@@ -1345,7 +1347,7 @@
           :examples $ []
           :schema $ quote $ Fn
             cumulo-reel.core/ReelState $ Map Tag Dynamic
-            -> Dynamic
+            -> Unit
             :features :state
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.server
