@@ -1458,6 +1458,13 @@
           :schema $ quote $ Fn (Map Tag Field)
             -> $ Map Tag Field
             :generics Field
+          :tests $ [] $ %{} 'TestEntry (:name |project-user-fields)
+            :code $ quote $ let
+                user $ {} (:name |demo) (:custom |kept) (:password |fixture) (:moods |fixture) (:archived-moods |fixture)
+              assert=
+                {} (:name |demo) (:custom |kept)
+                twig-user user
+            :tags $ #{} :unit
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.twig.user
           :require $ recollect.twig :refer $ deftwig
