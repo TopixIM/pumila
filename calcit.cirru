@@ -1109,7 +1109,7 @@
           :code $ quote $ def notification
             {} (:id nil) (:kind nil) (:text nil)
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote $ Map Tag Nil
         'read-field $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn read-field (value field)
             .unwrap $ lookup-field value field
