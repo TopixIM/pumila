@@ -1390,7 +1390,7 @@
                       get-in db $ [] :users $ app.schema/read-field session :user-id
                       .unwrap-or $ {}
                   {}
-                    :user $ twig-user user
+                    :user $ twig-user $ decode-map-as user (Map Tag Dynamic)
                     :router $ match
                       .unwrap-or (app.schema/lookup-field router :name) :unknown
                       :home $ assoc router :data $ {}
@@ -1455,7 +1455,9 @@
           :code $ quote $ defn twig-user (user)
             -> user (dissoc :password) (dissoc :moods) (dissoc :archived-moods)
           :examples $ []
-          :schema $ quote $ Fn Dynamic (-> Dynamic)
+          :schema $ quote $ Fn (Map Tag Field)
+            -> $ Map Tag Field
+            :generics Field
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.twig.user
           :require $ recollect.twig :refer $ deftwig
