@@ -439,7 +439,10 @@
                       decode-map-as cursor $ List respo.schema/CoordKey
                       assoc form :text $ respo.core/event-value e
                 comp-field |Score $ input $ {} (:style ui/input)
-                  :value $ app.schema/read-field form :score
+                  :value $ match
+                    decode-map-as (app.schema/read-field form :score) app.schema/ScoreInput
+                    (Number score) score
+                    (String draft) draft
                   :type |number
                   :on-input $ fn (e d!)
                     d! $ app.schema/LocalOp :states
@@ -1068,8 +1071,9 @@
                     _ $ raise "|Invalid edit-route data"
                   decode-map-as raw $ Map Tag Dynamic
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Map Tag Dynamic
+            :generics Input
         'emotion $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def emotion
             {} (:id nil) (:text |) (:score 0)
@@ -1080,8 +1084,9 @@
           :code $ quote $ defn lookup-field (value field)
             .and-then (get value field) nil->option
           :examples $ []
-          :schema $ quote $ Fn Dynamic Tag
+          :schema $ quote $ Fn Input Tag
             -> $ Option Dynamic
+            :generics Input
         'lookup-path $ %{} 'CodeEntry
           :doc "|Retain the legacy wire Option for edit routes and distinguish missing data from a malformed path."
           :code $ quote $ defn lookup-path (value path)
@@ -1092,8 +1097,9 @@
                   (:missing) None
                   (:shape message) (raise message)
           :examples $ []
-          :schema $ quote $ Fn Dynamic (List Dynamic)
+          :schema $ quote $ Fn Input (List Key)
             -> $ Option Dynamic
+            :generics Input Key
         'mood $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def mood
             {} (:id nil) (:emotion-id nil) (:text |) (:time nil)
@@ -1108,7 +1114,7 @@
           :code $ quote $ defn read-field (value field)
             .unwrap $ lookup-field value field
           :examples $ []
-          :schema $ quote $ Fn Dynamic Tag (-> Dynamic)
+          :schema $ quote $ Fn Input Tag (-> Dynamic) (:generics Input)
         'remote-op-to-wire $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn remote-op-to-wire (op)
             match op
@@ -1180,8 +1186,9 @@
         'as-change-list $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn as-change-list (value) (recollect.schema/decode-changes value)
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ List recollect.schema/change-op
+            :generics Input
           :tests $ [] $ %{} 'TestEntry (:name |wire-patch-roundtrip)
             :code $ quote $ let
                 before $ {} (:count 1)
