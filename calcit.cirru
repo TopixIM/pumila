@@ -1365,14 +1365,18 @@
             calcit.std.date :refer $ Date get-time!
             calcit.std.path :refer $ join-path
     'app.style $ %{} 'FileEntry
-      :defs $ {} $ 'link
-        %{} 'CodeEntry (:doc |)
+      :defs $ {}
+        'LinkField $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion LinkField Tag String
+          :examples $ []
+          :schema $ quote UnionDef
+        'link $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def link
             {} (:text-decoration :underline) (:cursor :pointer)
               :color $ hsl 240 80 80
               :font-family ui/font-fancy
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote $ Map Tag LinkField
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.style
           :require
