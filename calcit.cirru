@@ -39,15 +39,10 @@
                 host $ .unwrap-or (js-ffi.shared/search-params-get query |host) (:hostname location)
                 port $ .unwrap-or (js-ffi.shared/search-params-get query |port)
                   str $ .unwrap-or (get config/site :port) 0
-              ws-connect!
+              ws-edn.client/ws-connect-typed!
                 if config/dev? (str |ws:// host |: port) (str |wss:// host |/ws)
-                {}
-                  :on-open $ fn (event) (simulate-login!)
-                  :on-close $ fn (event) (reset! *store None) (js/console.error "|Lost connection!")
-                  :on-data $ fn (message)
-                    match message $
-                      :patch changes
-                      on-server-data $ recollect.schema/decode-changes changes
+                ws-edn.client/ClientConfig :retry-base-ms None :retry-max-ms None :retry-jitter None :heartbeat-timeout-ms None :class-mapper $ {}
+                ws-edn.client/ClientCallbacks :on-open (Some on-ws-open) :on-close (Some on-ws-close) :on-error None :on-data $ Some on-ws-data
           :examples $ []
           :schema $ quote $ Fn (-> ws-edn.client/WsClient) (:features :io :js-ffi :state)
         'dispatch! $ %{} 'CodeEntry (:doc |)
@@ -114,6 +109,21 @@
             , &unit
           :examples $ []
           :schema $ quote $ Fn (List recollect.schema/change-op) (-> Unit) (:features :js-ffi :state)
+        'on-ws-close $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn on-ws-close (event) (reset! *store None) (js/console.error "|Lost connection!") &unit
+          :examples $ []
+          :schema $ quote $ Fn js-ffi.browser/EventHost (-> Unit) (:features :io :js-ffi :state)
+        'on-ws-data $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn on-ws-data (message)
+            match message $
+              :patch changes
+              on-server-data $ recollect.schema/decode-changes changes
+          :examples $ []
+          :schema $ quote $ Fn Dynamic (-> Unit) (:features :io :js-ffi :state)
+        'on-ws-open $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn on-ws-open (event) (simulate-login!)
+          :examples $ []
+          :schema $ quote $ Fn js-ffi.browser/EventHost (-> Unit) (:features :io :js-ffi :state)
         'reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn reload! ()
             if
@@ -162,7 +172,7 @@
             app.comp.container :refer $ comp-container
             app.schema :as schema
             app.config :as config
-            ws-edn.client :refer $ ws-connect! ws-send!
+            ws-edn.client :refer $ ws-send!
             cumulo-util.core :refer $ on-page-touch
             |bottom-tip :default hud!
             |./calcit.build-errors :default client-errors
@@ -219,6 +229,7 @@
           :schema $ quote $ Fn (Map Tag Dynamic)
             Option $ Map Tag Dynamic
             -> respo.schema/Component
+            :features :io :state
         'comp-offline $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-offline ()
             div
@@ -502,7 +513,7 @@
                       :inner-text $ if editing? |Save |Create
                 .render delete-plugin
           :examples $ []
-          :schema $ quote $ Fn Dynamic Dynamic (-> respo.schema/Component)
+          :schema $ quote $ Fn Dynamic Dynamic (-> respo.schema/Component) (:features :io :state)
         'default-colors $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def default-colors
             [] |#ff9e96 |#e7e5e5 |#baf9c2 |#c6ded2 |#5facf6 |#c390e8 |#ffdd57 |#f79800 |#cf0027
@@ -626,6 +637,7 @@
             Map String $ Map Tag Dynamic
             Map String $ Map Tag Dynamic
             -> respo.schema/Component
+            :features :io :state
         'comp-record $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-record (states mood emotions)
             let
@@ -669,7 +681,7 @@
           :schema $ quote $ Fn respo.schema/States (Map Tag Dynamic)
             Map String $ Map Tag Dynamic
             -> respo.schema/Component
-            :features :js-ffi
+            :features :io :js-ffi :state
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.comp.history
           :require
